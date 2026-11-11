@@ -1,0 +1,193 @@
+---
+/**
+ * Конец линии: финальная точка. Линия упирается в огромную коралловую
+ * точку («точка в конце задачи: сделано», брендбук), и на ней — заявка.
+ * Форма стоит прямо на коралле: поля молочные, текст и кнопка чёрные
+ * (чёрный на коралле — контраст 5,95:1; серый stone здесь не проходит).
+ */
+import '@/styles/line.css';
+import type { PageBlock } from '@/content.config';
+import LeadForm from '@/components/form/LeadForm.astro';
+import Icon from '@/components/ui/Icon.astro';
+import Rich from '@/components/ui/Rich.astro';
+import { whatsappUrl } from '@/data/site';
+import type { Locale } from '@/i18n/config';
+import { useTranslations } from '@/i18n/ui';
+
+interface Props {
+  block: Extract<PageBlock, { type: 'lead' }>;
+  locale: Locale;
+  /** Внутренняя страница: линии к точке нет, точка — просто финал страницы */
+  standalone?: boolean;
+}
+
+const { block, locale, standalone = false } = Astro.props;
+const t = useTranslations(locale);
+const sectionId = block.id ?? 'lead';
+const topic = block.topic;
+---
+
+<section
+  class:list={['seg lead', standalone && 'line lead-standalone']}
+  id={sectionId}
+  aria-labelledby={`${sectionId}-title`}
+  data-lead-section
+>
+  <div class="container-site">
+    <div class="seg-grid">
+      <span class="lead-dot" data-line-end aria-hidden="true"></span>
+
+      <div class="lead-text seg-left">
+        <Rich as="h2" id={`${sectionId}-title`} class="lead-title" text={block.title} locale={locale} />
+        {block.lead && <Rich as="p" class="lead-copy" text={block.lead} locale={locale} />}
+        {/* Основной способ связи — WhatsApp; форма рядом для тех, кому удобнее */}
+        <div class="lead-wa">
+          <a class="btn btn-dark" href={whatsappUrl(topic ? `${t('wa.prefill')} ${topic}.` : t('wa.prefill'))} target="_blank" rel="noopener" data-place="lead">
+            <Icon name="whatsapp" size={18} />
+            {t('lead.whatsapp')}
+          </a>
+        </div>
+      </div>
+
+      <div class="lead-card seg-right">
+        <LeadForm locale={locale} topic={block.topic} />
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .lead {
+    overflow: clip;
+  }
+
+  .lead :global(.seg-grid) {
+    /* Размер точки огромный: сверху видна пологая дуга, ниже — коралловое поле */
+    --dot-size: max(160vw, 110rem);
+    --dot-top: clamp(2.5rem, 1.5rem + 3vw, 4.5rem);
+    --seg-pad: calc(var(--dot-top) + clamp(3rem, 1rem + 7vw, 9rem));
+    padding-bottom: clamp(3rem, 2rem + 4vw, 6rem);
+  }
+
+  /* Внутренняя страница: к точке не ведёт линия — отрезок сверху не рисуем */
+  .lead-standalone :global(.seg-grid)::before {
+    display: none;
+  }
+
+  /* Узкий экран: линия кончается у вершины точки, выше текста, —
+     заявке не нужен отступ под линию, форма получает всю ширину */
+  @media (max-width: 63.99rem) {
+    .lead :global(.seg-grid) {
+      padding-left: 0;
+    }
+  }
+
+  /* Отрезок линии заканчивается у вершины точки */
+  .lead :global(.seg-grid)::before {
+    bottom: auto;
+    height: var(--dot-top);
+  }
+
+  .lead-dot {
+    position: absolute;
+    z-index: 0;
+    top: var(--dot-top);
+    left: calc(var(--spine) - var(--dot-size) / 2);
+    width: var(--dot-size);
+    height: var(--dot-size);
+    border-radius: 50%;
+    background: var(--color-coral);
+    transform-origin: 50% 0;
+    transition: transform 0.8s var(--ease-out-soft);
+  }
+
+  /* Точка «приземляется», когда до неё доходит путь */
+  :global(.line[data-enhanced]) .lead-dot:not([data-active]) {
+    transform: scale(0.985);
+  }
+
+  .lead-text,
+  .lead-card {
+    position: relative;
+    z-index: 1;
+  }
+
+  .lead-text {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: 1.25rem;
+    --focus-ring: var(--color-ink);
+  }
+
+  .lead-title {
+    max-width: 14ch;
+    font-size: clamp(2.25rem, 1.4rem + 3vw, 4rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .lead-copy {
+    max-width: 38ch;
+    font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+  }
+
+  .lead-wa {
+    display: grid;
+    justify-items: start;
+    gap: 0.625rem;
+    margin-top: 0.25rem;
+  }
+
+  /* На коралле кнопка WhatsApp чёрная; при наведении — молочная */
+  .lead-wa .btn:hover {
+    background-color: var(--color-milk);
+    color: var(--color-ink);
+  }
+
+  @media (max-width: 47.99rem) {
+    .lead-wa .btn {
+      width: 100%;
+    }
+  }
+
+  .lead-card {
+    margin-top: 2.25rem;
+    --focus-ring: var(--color-ink);
+  }
+
+  /* На коралле: подсказки и приписки — чёрные, кнопка отправки — чёрная
+     (коралловая кнопка на коралловом поле пропала бы) */
+  .lead-card :global(.field-hint),
+  .lead-card :global(.lead-response),
+  .lead-card :global(.lead-success-text) {
+    color: var(--color-ink);
+  }
+
+  .lead-card :global(.field-error::before) {
+    background: var(--color-ink);
+  }
+
+  .lead-card :global(.lead-submit .btn-primary) {
+    background-color: var(--color-ink);
+    color: var(--color-milk);
+  }
+
+  .lead-card :global(.lead-submit .btn-primary:hover) {
+    background-color: var(--color-milk);
+    color: var(--color-ink);
+  }
+
+  @media (min-width: 64rem) {
+    .lead-text {
+      justify-self: end;
+      width: min(100%, calc(30rem + var(--spine-gap)));
+    }
+
+    .lead-card {
+      margin-top: 0;
+      max-width: 36rem;
+    }
+  }
+</style>

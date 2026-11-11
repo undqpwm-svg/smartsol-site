@@ -1,0 +1,93 @@
+---
+/**
+ * Хлебные крошки внутренних страниц: «Главная / Продукты / Kaspi Магазин».
+ * Последний пункт — текущая страница, без ссылки. Для поисковиков рядом
+ * выводится разметка BreadcrumbList (JSON-LD).
+ */
+import type { Locale } from '@/i18n/config';
+import { useTranslations } from '@/i18n/ui';
+import { localizedPath } from '@/i18n/utils';
+import { plainText } from '@/lib/rich';
+
+interface Props {
+  locale: Locale;
+  /** Пункты после «Главной»; у последнего href не нужен */
+  items: { label: string; href?: string }[];
+}
+
+const { locale, items } = Astro.props;
+const t = useTranslations(locale);
+const site = Astro.site ?? new URL('https://smartsol.pro');
+const all = [{ label: t('crumbs.home'), href: localizedPath(locale) }, ...items];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: all.map((item, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    name: plainText(item.label),
+    item: new URL(item.href ?? Astro.url.pathname, site).href,
+  })),
+};
+---
+
+<nav class="crumbs" aria-label={t('crumbs.label')}>
+  <ol role="list">
+    {
+      all.map((item, index) => (
+        <li>
+          {index < all.length - 1 && item.href ? (
+            <a href={item.href}>{plainText(item.label)}</a>
+          ) : (
+            <span aria-current="page">{plainText(item.label)}</span>
+          )}
+        </li>
+      ))
+    }
+  </ol>
+</nav>
+<script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+<style>
+  .crumbs ol {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0;
+    font-size: var(--text-small);
+    color: var(--color-stone);
+  }
+
+  .crumbs li {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Разделитель — короткая линия 2 px, как связь между узлами */
+  .crumbs li + li::before {
+    content: '';
+    width: 0.875rem;
+    height: 2px;
+    margin-inline: 0.5rem;
+    background: currentColor;
+    opacity: 0.6;
+  }
+
+  .crumbs a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    color: var(--color-ink);
+    text-decoration-line: underline;
+    text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+  }
+
+  .crumbs a:hover {
+    text-decoration-color: currentColor;
+  }
+
+  .crumbs [aria-current] {
+    color: var(--color-stone);
+  }
+</style>

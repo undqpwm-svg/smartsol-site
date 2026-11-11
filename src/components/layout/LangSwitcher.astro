@@ -1,0 +1,120 @@
+---
+/**
+ * Переключатель языка. Ведёт на эту же страницу на другом языке.
+ * Если перевода страницы ещё нет — на главную этого языка.
+ * Языки, на которых сайта ещё нет, не показываются; пока язык один,
+ * переключатель не выводится вовсе.
+ */
+import { LOCALES, LOCALE_META, type Locale } from '@/i18n/config';
+import { useTranslations } from '@/i18n/ui';
+import type { Alternates } from '@/i18n/utils';
+
+interface Props {
+  locale: Locale;
+  /** Адреса текущей страницы на языках, где она есть */
+  alternates: Alternates;
+  /** Адреса главных страниц на языках, где они есть */
+  homes: Alternates;
+  class?: string;
+  /** Крупный вариант для мобильного меню, тёмный — для футера */
+  variant?: 'header' | 'menu' | 'footer';
+}
+
+const { locale, alternates, homes, class: className, variant = 'header', ...rest } = Astro.props;
+const t = useTranslations(locale);
+
+// Только языки, на которых есть эта страница или хотя бы главная
+const items = LOCALES.map((code) => ({
+  code,
+  meta: LOCALE_META[code],
+  href: code === locale ? undefined : (alternates[code] ?? homes[code]),
+})).filter((item) => item.code === locale || item.href);
+---
+
+{
+  items.length > 1 && (
+    <nav aria-label={t('lang.label')} class:list={['lang', className]} data-variant={variant} {...rest}>
+      <ul role="list">
+        {items.map(({ code, meta, href }) =>
+          code === locale ? (
+            <li>
+              <span class="lang-item is-current" aria-current="true" lang={meta.lang}>
+                {meta.label}
+                <span class="sr-only"> — {meta.name}</span>
+              </span>
+            </li>
+          ) : (
+            <li>
+              <a class="lang-item" href={href} hreflang={meta.lang} lang={meta.lang}>
+                {meta.label}
+                <span class="sr-only"> — {meta.name}</span>
+              </a>
+            </li>
+          ),
+        )}
+      </ul>
+    </nav>
+  )
+}
+
+<style>
+  .lang ul {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+  }
+
+  .lang-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    padding: 0 0.375rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    color: var(--color-stone);
+    transition:
+      color 0.2s,
+      background-color 0.2s;
+  }
+
+  a.lang-item:hover {
+    background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+    color: var(--color-ink);
+  }
+
+  .is-current {
+    color: var(--color-ink);
+  }
+
+
+  .lang[data-variant='menu'] .lang-item {
+    min-width: 3.25rem;
+    min-height: 3rem;
+    font-size: 1rem;
+    background-color: var(--color-white);
+  }
+
+  .lang[data-variant='menu'] .is-current {
+    background-color: var(--color-ink);
+    color: var(--color-milk);
+  }
+
+  .lang[data-variant='footer'] .lang-item {
+    color: color-mix(in srgb, var(--color-milk) 72%, transparent);
+  }
+
+  .lang[data-variant='footer'] a.lang-item:hover {
+    background-color: color-mix(in srgb, var(--color-milk) 12%, transparent);
+    color: var(--color-milk);
+  }
+
+  .lang[data-variant='footer'] .is-current {
+    color: var(--color-milk);
+  }
+
+</style>

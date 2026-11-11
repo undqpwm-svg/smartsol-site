@@ -1,0 +1,447 @@
+---
+/**
+ * Шапка: логотип, меню, переключатель языка и кнопка WhatsApp (всегда видна).
+ * На экранах уже 1024 px меню открывается в полноэкранном диалоге <dialog>:
+ * он сам удерживает фокус внутри и закрывается по Esc.
+ */
+import Logo from '@/components/brand/Logo.astro';
+import Icon from '@/components/ui/Icon.astro';
+import LangSwitcher from './LangSwitcher.astro';
+import { NAV } from '@/data/nav';
+import { SITE, emailHref, phoneHref, whatsappUrl } from '@/data/site';
+import type { Locale } from '@/i18n/config';
+import { useTranslations } from '@/i18n/ui';
+import { localizedPath, type Alternates } from '@/i18n/utils';
+
+interface Props {
+  locale: Locale;
+  alternates: Alternates;
+  homes: Alternates;
+  /** Куда ведёт «Обсудить задачу» — по умолчанию к форме на этой странице */
+  leadHref?: string;
+}
+
+const { locale, alternates, homes, leadHref = '#lead' } = Astro.props;
+const t = useTranslations(locale);
+const home = localizedPath(locale);
+const wa = whatsappUrl(t('wa.prefill'));
+const current = Astro.url.pathname;
+
+// Активный пункт — самый точный: на /products/finpuls/ горит «ФинПульс», а не «Продукты»
+const withHref = NAV.map((item) => ({ ...item, href: localizedPath(locale, item.path) }));
+const activeHref = withHref
+  .filter((item) => current.startsWith(item.href))
+  .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+const items = withHref.map((item) => ({ ...item, active: item.href === activeHref }));
+---
+
+<div class="header-sentinel" aria-hidden="true" data-header-sentinel></div>
+<header class="site-header" data-header>
+  <div class="container-site header-inner">
+    <a href={home} class="header-logo" aria-label={t('logo.home')}>
+      <Logo width={132} priority alt="" />
+    </a>
+
+    <nav aria-label={t('nav.label')} class="header-nav">
+      <ul role="list">
+        {
+          items.map((item) => (
+            <li>
+              <a href={item.href} aria-current={item.active ? 'page' : undefined}>
+                {t(item.key)}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="header-actions">
+      <LangSwitcher locale={locale} alternates={alternates} homes={homes} class="header-lang" />
+      <a class="header-phone" href={phoneHref} data-place="header">{SITE.phone.display}</a>
+      <a
+        class="btn btn-dark btn-sm header-wa"
+        href={wa}
+        target="_blank"
+        rel="noopener"
+        data-place="header"
+      >
+        <Icon name="whatsapp" size={18} />
+        <span class="header-wa-label">{t('cta.whatsapp')}</span>
+        <span class="sr-only">: {t('cta.whatsappHint')}</span>
+      </a>
+      <button
+        type="button"
+        class="menu-toggle"
+        aria-haspopup="dialog"
+        aria-expanded="false"
+        aria-controls="site-menu"
+        data-menu-open
+      >
+        <Icon name="menu" size={24} />
+        <span class="sr-only">{t('menu.open')}</span>
+      </button>
+    </div>
+  </div>
+
+  <dialog id="site-menu" class="menu" aria-label={t('nav.label')}>
+    <div class="container-site menu-top">
+      <a href={home} aria-label={t('logo.home')}>
+        <Logo width={120} alt="" />
+      </a>
+      <button type="button" class="menu-toggle" data-menu-close>
+        <Icon name="close" size={24} />
+        <span class="sr-only">{t('menu.close')}</span>
+      </button>
+    </div>
+    <nav class="container-site menu-nav" aria-label={t('nav.label')}>
+      <ul role="list">
+        {
+          items.map((item) => (
+            <li>
+              <a href={item.href} aria-current={item.active ? 'page' : undefined}>
+                {t(item.key)}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+    <div class="container-site menu-bottom">
+      <div class="menu-cta">
+        <a class="btn btn-primary" href={leadHref}>{t('cta.discuss')}</a>
+        <a class="btn btn-dark" href={wa} target="_blank" rel="noopener" data-place="menu">
+          <Icon name="whatsapp" size={18} />
+          {t('cta.whatsapp')}
+        </a>
+      </div>
+      <a class="menu-phone" href={phoneHref} data-place="menu">{SITE.phone.display}</a>
+      <ul class="menu-contacts" role="list">
+        <li><a href={emailHref}>{SITE.email}</a></li>
+        <li><a href={SITE.instagram.url} target="_blank" rel="noopener">Instagram {SITE.instagram.handle}</a></li>
+        <li><a href={SITE.threads.url} target="_blank" rel="noopener">Threads {SITE.threads.handle}</a></li>
+      </ul>
+      <LangSwitcher locale={locale} alternates={alternates} homes={homes} variant="menu" />
+    </div>
+  </dialog>
+</header>
+
+<style>
+  .header-sentinel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 8px;
+  }
+
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background-color: var(--color-milk);
+    transition: box-shadow 0.25s var(--ease-out-soft);
+  }
+
+  /* После прокрутки — тонкая линия снизу, чтобы шапка отделялась от контента */
+  .site-header[data-scrolled] {
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--color-ink) 10%, transparent);
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    min-height: var(--header-h);
+    gap: 0.5rem;
+  }
+
+  .header-logo {
+    display: block;
+    flex: none;
+    margin-inline-end: auto;
+    border-radius: 6px;
+  }
+
+  /* На узких экранах — минимальная ширина логотипа по брендбуку, 120 px */
+  .header-logo :global(img) {
+    width: 120px;
+    height: auto;
+  }
+
+  @media (min-width: 64rem) {
+    .header-logo {
+      margin-inline-end: 0;
+    }
+
+    .header-logo :global(img) {
+      width: 132px;
+    }
+  }
+
+  .header-nav {
+    display: none;
+  }
+
+  @media (min-width: 64rem) {
+    .header-nav {
+      display: block;
+      margin-inline-end: auto;
+    }
+  }
+
+  .header-nav ul {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.25rem, -0.6rem + 1.4vw, 1rem);
+  }
+
+  .header-nav a {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
+    padding: 0 0.375rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    border-radius: 6px;
+  }
+
+  /* Активный раздел и наведение — коралловая точка под пунктом */
+  .header-nav a::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0.125rem;
+    width: 0.375rem;
+    height: 0.375rem;
+    margin-left: -0.1875rem;
+    border-radius: 50%;
+    background: var(--color-coral);
+    transform: scale(0);
+    transition: transform 0.2s var(--ease-spring);
+  }
+
+  .header-nav a:hover::after,
+  .header-nav a[aria-current='page']::after {
+    transform: scale(1);
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .header-lang {
+    display: none;
+  }
+
+  @media (min-width: 64rem) {
+    .header-lang {
+      display: block;
+    }
+  }
+
+  /* Совсем узкие экраны (меньше 360 px): у кнопки WhatsApp остаётся только иконка */
+  @media (max-width: 22.49rem) {
+    .header-wa {
+      width: 2.75rem;
+      padding: 0;
+    }
+
+    .header-wa-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+
+  .menu-toggle {
+    display: inline-grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .menu-toggle:hover {
+    background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  }
+
+  @media (min-width: 64rem) {
+    .header-actions > .menu-toggle {
+      display: none;
+    }
+  }
+
+  /* ── Мобильное меню ── */
+  .menu {
+    width: 100%;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    padding: 0 0 calc(1.5rem + env(safe-area-inset-bottom));
+    border: 0;
+    background-color: var(--color-milk);
+    color: var(--color-ink);
+    overflow-y: auto;
+  }
+
+  .menu[open] {
+    display: flex;
+    flex-direction: column;
+    animation: menu-in 0.28s var(--ease-out-soft);
+  }
+
+  .menu::backdrop {
+    background: var(--color-milk);
+  }
+
+  @keyframes menu-in {
+    from {
+      opacity: 0;
+      transform: translateY(-0.75rem);
+    }
+  }
+
+  .menu-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: var(--header-h);
+  }
+
+  .menu-nav {
+    padding-top: 1.5rem;
+  }
+
+  .menu-nav a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 1.4rem + 1.6vw, 2.25rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+  }
+
+  .menu-nav a[aria-current='page']::after {
+    content: '';
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-coral);
+  }
+
+  .menu-bottom {
+    display: grid;
+    gap: 1.25rem;
+    margin-top: auto;
+    padding-top: 2rem;
+  }
+
+  .menu-cta {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .menu-phone {
+    font-weight: 600;
+    font-size: 1.125rem;
+    text-decoration: none;
+  }
+
+  .menu-contacts {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .menu-contacts a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.25rem;
+    color: var(--color-ink);
+    text-decoration-line: underline;
+    text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+  }
+
+  /* Телефон в шапке — только на широком экране, где есть место */
+  .header-phone {
+    display: none;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .header-phone:hover {
+    text-decoration-line: underline;
+  }
+
+  @media (min-width: 80rem) {
+    .header-phone {
+      display: inline-flex;
+      align-items: center;
+      min-height: 2.75rem;
+      margin-right: 0.5rem;
+    }
+  }
+
+  :global(html:has(.menu[open])) {
+    overflow: hidden;
+  }
+</style>
+
+<script>
+  // Тень у шапки после прокрутки
+  const header = document.querySelector<HTMLElement>('[data-header]');
+  const sentinel = document.querySelector('[data-header-sentinel]');
+  if (header && sentinel && 'IntersectionObserver' in window) {
+    new IntersectionObserver(([entry]) => {
+      header.toggleAttribute('data-scrolled', !entry.isIntersecting);
+    }).observe(sentinel);
+  }
+
+  // Мобильное меню на <dialog>
+  const dialog = document.getElementById('site-menu') as HTMLDialogElement | null;
+  const openBtn = document.querySelector<HTMLButtonElement>('[data-menu-open]');
+  if (dialog && openBtn) {
+    let closedByLink = false;
+
+    openBtn.addEventListener('click', () => {
+      dialog.showModal();
+      openBtn.setAttribute('aria-expanded', 'true');
+    });
+
+    dialog.querySelector('[data-menu-close]')?.addEventListener('click', () => dialog.close());
+
+    // Переход по ссылке из меню — меню закрывается
+    dialog.addEventListener('click', (event) => {
+      if ((event.target as Element).closest('a')) {
+        closedByLink = true;
+        dialog.close();
+      }
+    });
+
+    dialog.addEventListener('close', () => {
+      openBtn.setAttribute('aria-expanded', 'false');
+      if (!closedByLink) openBtn.focus();
+      closedByLink = false;
+    });
+
+    // Окно расширили до десктопа — меню больше не нужно
+    window.matchMedia('(min-width: 64rem)').addEventListener('change', (e) => {
+      if (e.matches && dialog.open) dialog.close();
+    });
+  }
+</script>

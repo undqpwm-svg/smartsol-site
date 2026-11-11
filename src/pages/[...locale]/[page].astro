@@ -1,0 +1,53 @@
+---
+/**
+ * Внутренние страницы из src/content/pages/<язык>/<slug>.md:
+ * /services/, /products/, /cases/, /contacts/, /privacy/.
+ * Шапка страницы — поле header, ниже — блоки по порядку. Тело файла
+ * (Markdown под фронтматтером) выводит блок prose — так устроена политика.
+ * Главная — свой шаблон index.astro, страницы продуктов — products/[slug].astro.
+ */
+import '@/styles/line.css';
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Blocks from '@/components/blocks/Blocks.astro';
+import PageHeader from '@/components/layout/PageHeader.astro';
+import { buildAlternates, localeParam, splitEntryId } from '@/i18n/utils';
+
+export async function getStaticPaths() {
+  // Главная и вложенные страницы (products/finpuls) собираются своими шаблонами
+  const entries = (await getCollection('pages', ({ data }) => !data.draft)).filter((entry) => {
+    const { slug } = splitEntryId(entry.id);
+    return slug !== 'home' && !slug.includes('/');
+  });
+  return entries.map((entry) => {
+    const { locale, slug } = splitEntryId(entry.id);
+    const languages = entries.filter((e) => splitEntryId(e.id).slug === slug).map((e) => splitEntryId(e.id).locale);
+    return {
+      params: { locale: localeParam(locale), page: slug },
+      props: { entry, locale, alternates: buildAlternates(languages, slug) },
+    };
+  });
+}
+
+const { entry, locale, alternates } = Astro.props;
+const { Content, headings } = await render(entry);
+const header = entry.data.header;
+---
+
+<BaseLayout locale={locale} title={entry.data.seo.title} description={entry.data.seo.description} alternates={alternates}>
+  <div class="grid-plain">
+    {
+      header && (
+        <PageHeader
+          locale={locale}
+          crumbs={[{ label: header.crumb ?? header.title }]}
+          title={header.title}
+          lead={header.lead}
+          cta={header.cta}
+          extra={header.extra}
+        />
+      )
+    }
+    <Blocks blocks={entry.data.blocks} locale={locale} standalone Content={Content} headings={headings} />
+  </div>
+</BaseLayout>

@@ -1,0 +1,258 @@
+---
+/**
+ * Крупный блок-акцент — наш продукт. Тёмная полоса: на главной линия
+ * проходит через неё молочной, на линии — капсула с названием.
+ * Слева надзаголовок и заголовок, справа текст, кнопки и схема.
+ * Схема «платёжный календарь» — условная, без цифр: столбики остатка по дням,
+ * один день уходит ниже нуля и подсвечен кораллом, как кассовый разрыв.
+ */
+import '@/styles/line.css';
+import type { PageBlock } from '@/content.config';
+import Icon from '@/components/ui/Icon.astro';
+import Rich from '@/components/ui/Rich.astro';
+import type { Locale } from '@/i18n/config';
+import { useTranslations } from '@/i18n/ui';
+import { localizeHref } from '@/i18n/utils';
+
+interface Props {
+  block: Extract<PageBlock, { type: 'feature' }>;
+  locale: Locale;
+}
+
+const { block, locale } = Astro.props;
+const t = useTranslations(locale);
+const titleId = `${block.id ?? 'feature'}-title`;
+const isExternal = (href: string) => /^https?:\/\//.test(href);
+
+// Остаток по дням в условных долях: отрицательное значение — кассовый разрыв
+const DAYS = [0.62, 0.48, 0.71, 0.34, -0.22, 0.4, 0.66];
+---
+
+<section class:list={['seg seg-dark on-dark feature', block.node && 'has-node']} id={block.id} aria-labelledby={titleId}>
+  <div class="container-site">
+    <div class="seg-grid feature-grid">
+      {block.node && <span class="node feature-node">{block.node}</span>}
+
+      <div class="feature-head seg-left">
+        {block.eyebrow && <p class="feature-eyebrow">{block.eyebrow}</p>}
+        <Rich as="h2" id={titleId} class="feature-title" text={block.title} locale={locale} mark />
+      </div>
+
+      <div class="feature-body seg-right">
+        <Rich as="div" class="feature-text" text={block.text} locale={locale} block />
+        {
+          block.links.length > 0 && (
+            <div class="feature-actions">
+              {block.links.map((l, i) => {
+                const external = isExternal(l.href);
+                return (
+                  <a
+                    class:list={['btn', i === 0 ? 'btn-primary' : 'btn-outline']}
+                    href={external ? l.href : localizeHref(l.href, locale)}
+                    target={external ? '_blank' : undefined}
+                    rel={external ? 'noopener' : undefined}
+                    data-place={external ? 'demo' : undefined}
+                  >
+                    {l.label}
+                    {external && <Icon name="arrow-up-right" size={18} />}
+                  </a>
+                );
+              })}
+            </div>
+          )
+        }
+
+        {
+          block.visual === 'calendar' && (
+            <figure class="cal" data-reveal aria-hidden="true">
+              <figcaption class="cal-head">
+                <span>{t('feature.calendar')}</span>
+                <span class="cal-legend">
+                  <span class="cal-legend-dot" />
+                  {t('feature.gap')}
+                </span>
+              </figcaption>
+              <div class="cal-days">
+                {DAYS.map((v, i) => (
+                  <div class:list={['cal-day', v < 0 && 'is-gap']} style={`--v:${Math.abs(v)}; --i:${i}`}>
+                    <span class="cal-bar" />
+                  </div>
+                ))}
+              </div>
+            </figure>
+          )
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .feature :global(.seg-grid) {
+    --seg-pad: clamp(3rem, 1.5rem + 4.5vw, 6.5rem);
+  }
+
+  /* Узкий экран: капсула на линии стоит над заголовком */
+  @media (max-width: 63.99rem) {
+    .has-node .feature-head {
+      padding-top: 3.5rem;
+    }
+  }
+
+  .feature-node {
+    background: var(--color-coral);
+  }
+
+  .feature-head {
+    display: grid;
+    align-content: start;
+    gap: 0.875rem;
+  }
+
+  .feature-eyebrow {
+    font-size: var(--text-small);
+    font-weight: 600;
+    color: var(--color-coral);
+    letter-spacing: 0.02em;
+  }
+
+  .feature-title {
+    max-width: 16ch;
+    font-size: clamp(2rem, 1.2rem + 2.8vw, 3.5rem);
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+  }
+
+  .feature-body {
+    display: grid;
+    min-width: 0;
+    align-content: start;
+    gap: 1.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .feature-text {
+    max-width: 52ch;
+    font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+    color: color-mix(in srgb, var(--color-milk) 86%, transparent);
+  }
+
+  .feature-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  /* Телефон: кнопки во всю ширину, длинная подпись переносится, а не раздвигает экран */
+  @media (max-width: 47.99rem) {
+    .feature-actions .btn {
+      flex: 1 1 100%;
+      min-width: 0;
+      white-space: normal;
+      text-align: center;
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .feature-head {
+      justify-items: end;
+      text-align: right;
+    }
+
+    .has-node .feature-head {
+      padding-top: 4.5rem;
+    }
+
+    .feature-body {
+      margin-top: 0;
+    }
+  }
+
+  /* ── Схема платёжного календаря ── */
+  .cal {
+    max-width: 30rem;
+    padding: 1.25rem 1.25rem 1rem;
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--color-milk) 7%, var(--color-ink));
+    border: 1px solid color-mix(in srgb, var(--color-milk) 12%, transparent);
+  }
+
+  .cal-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    font-size: var(--text-small);
+    font-weight: 600;
+  }
+
+  .cal-legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 500;
+    color: color-mix(in srgb, var(--color-milk) 72%, transparent);
+  }
+
+  .cal-legend-dot {
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 50%;
+    background: var(--color-coral);
+  }
+
+  /* Ось нуля посередине: остаток растёт вверх, разрыв уходит вниз */
+  .cal-days {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
+    height: 8.5rem;
+    margin-top: 1rem;
+  }
+
+  .cal-days::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 70%;
+    height: 1px;
+    background: color-mix(in srgb, var(--color-milk) 30%, transparent);
+  }
+
+  .cal-day {
+    position: relative;
+  }
+
+  .cal-bar {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 30%;
+    height: calc(var(--v) * 70%);
+    border-radius: 6px 6px 2px 2px;
+    background: color-mix(in srgb, var(--color-milk) 78%, transparent);
+    transform-origin: 50% 100%;
+  }
+
+  .cal-day.is-gap .cal-bar {
+    top: 70%;
+    bottom: auto;
+    height: calc(var(--v) * 100%);
+    border-radius: 2px 2px 6px 6px;
+    background: var(--color-coral);
+    transform-origin: 50% 0;
+  }
+
+  /* Столбики вырастают, когда схема попадает на экран (скрипт reveal в BaseLayout) */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html.js) .cal .cal-bar {
+      transform: scaleY(0);
+      transition: transform 0.7s var(--ease-out-soft) calc(var(--i) * 60ms);
+    }
+
+    :global(html.js) .cal[data-revealed] .cal-bar {
+      transform: none;
+    }
+  }
+</style>

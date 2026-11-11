@@ -1,0 +1,1 @@
+import{t as e}from"./analytics.CybJKqhm.js";import{t}from"./attribution.HuuqW8l6.js";t(),e();var n=new IntersectionObserver(e=>{for(let t of e)t.isIntersecting&&(t.target.setAttribute(`data-revealed`,``),n.unobserve(t.target))},{rootMargin:`0px 0px -8% 0px`});document.querySelectorAll(`[data-reveal]`).forEach(e=>n.observe(e));

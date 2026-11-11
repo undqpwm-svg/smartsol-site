@@ -1,0 +1,162 @@
+---
+/**
+ * Первый экран: крупный заголовок, рядом — подзаголовок, кнопка к форме
+ * и кнопка WhatsApp. Ниже начинается линия: коралловая точка — старт пути.
+ */
+import type { PageBlock } from '@/content.config';
+import Icon from '@/components/ui/Icon.astro';
+import Rich from '@/components/ui/Rich.astro';
+import { whatsappUrl } from '@/data/site';
+import type { Locale } from '@/i18n/config';
+import { useTranslations } from '@/i18n/ui';
+import { localizeHref } from '@/i18n/utils';
+
+interface Props {
+  block: Extract<PageBlock, { type: 'hero' }>;
+  locale: Locale;
+}
+
+const { block, locale } = Astro.props;
+const t = useTranslations(locale);
+---
+
+<section class="hero" aria-labelledby="hero-title" data-hero>
+  <div class="container-site hero-top">
+    <Rich as="h1" id="hero-title" class="hero-title" text={block.title} locale={locale} mark />
+    <div class="hero-intro">
+      <Rich as="p" class="hero-lead" text={block.lead} locale={locale} />
+      <div class="hero-actions" data-hero-cta>
+        <a class="btn btn-primary" href={localizeHref(block.primary.href, locale)}>{block.primary.label}</a>
+        {
+          block.whatsapp && (
+            <a class="btn btn-outline" href={whatsappUrl(t('wa.prefill'))} target="_blank" rel="noopener" data-place="hero">
+              <Icon name="whatsapp" size={18} />
+              {t('cta.whatsappAria')}
+            </a>
+          )
+        }
+      </div>
+      {block.note && <Rich as="p" class="hero-note" text={block.note} locale={locale} />}
+    </div>
+  </div>
+
+  <div class="seg hero-line" id="route">
+    <div class="container-site">
+      <div class="seg-grid">
+        <span class="hero-start" data-line-start aria-hidden="true"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    padding-top: clamp(2rem, 1rem + 3.5vw, 4.5rem);
+  }
+
+  .hero-top {
+    display: grid;
+    gap: 1.75rem;
+  }
+
+  @media (min-width: 64rem) {
+    .hero-top {
+      grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+      align-items: end;
+      gap: clamp(2rem, 0rem + 4vw, 4.5rem);
+    }
+  }
+
+  .hero-title {
+    font-size: clamp(2.5rem, 1rem + 5.4vw, 5.25rem);
+    font-weight: 800;
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+  }
+
+  .hero-intro {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 64rem) {
+    .hero-intro {
+      padding-bottom: 0.5rem;
+    }
+  }
+
+  .hero-lead {
+    max-width: 36ch;
+    font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.5rem;
+  }
+
+  /* Появление первого экрана: заголовок и текст мягко поднимаются при загрузке */
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-title,
+    .hero-intro {
+      animation: hero-in 0.9s var(--ease-out-soft) both;
+    }
+
+    .hero-intro {
+      animation-delay: 0.15s;
+    }
+
+    .hero-start {
+      animation: hero-dot 0.6s var(--ease-spring) 0.5s both;
+    }
+  }
+
+  @keyframes hero-in {
+    from {
+      opacity: 0;
+      transform: translateY(1.25rem);
+    }
+  }
+
+  @keyframes hero-dot {
+    from {
+      transform: scale(0);
+    }
+  }
+
+  .hero-note {
+    font-size: var(--text-small);
+    color: var(--color-stone);
+  }
+
+  /* Старт линии */
+  .hero-line :global(.seg-grid) {
+    --seg-pad: 0;
+    height: clamp(2.5rem, 1rem + 4vw, 6rem);
+    margin-top: clamp(1.75rem, 1rem + 3vw, 3.5rem);
+  }
+
+  .hero-line :global(.seg-grid)::before {
+    top: 0.75rem;
+  }
+
+  .hero-start {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    left: calc(var(--spine) - 0.75rem);
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: var(--color-coral);
+  }
+
+  /* Телефон: главная кнопка на всю ширину, под большой палец */
+  @media (max-width: 47.99rem) {
+    .hero-actions .btn {
+      flex: 1 1 100%;
+    }
+  }
+</style>

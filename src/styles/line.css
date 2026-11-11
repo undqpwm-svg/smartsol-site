@@ -1,0 +1,217 @@
+/* ==========================================================================
+   «Линия» — хребет главной (направление A).
+   Все секции на линии используют одну координату --spine: линия 3 px
+   проходит через страницу от первого экрана до формы заявки.
+   Каждая секция рисует свой отрезок линии во всю высоту, поэтому линия
+   непрерывна без JavaScript. Скрипт в Line.astro только ведёт по ней точку
+   и «зажигает» станции.
+   ========================================================================== */
+
+.line,
+.grid-plain {
+  /* Узкий экран: линия у левого края контента */
+  --spine: 1.125rem;
+  --spine-gap: 1.75rem;
+  --line-color: var(--color-ink);
+  position: relative;
+}
+
+/* Внутренние страницы: та же сетка с осью, но линия не рисуется —
+   её показывают только блоки, где она доказывает путь данных */
+.grid-plain {
+  --line-color: transparent;
+  --spine: 0rem;
+  --spine-gap: 0rem;
+}
+
+@media (min-width: 64rem) {
+  .grid-plain {
+    --spine: 36%;
+    --spine-gap: clamp(2rem, 0.5rem + 2.5vw, 3.5rem);
+  }
+
+  .line {
+    /* Широкий экран: линия чуть левее центра — асимметрия вместо симметрии.
+       Отступ от линии больше половины самой широкой капсулы («WhatsApp»),
+       чтобы капсула не касалась текста и артефакта */
+    --spine: 42%;
+    --spine-gap: clamp(4.75rem, 2.5rem + 3.25vw, 7rem);
+  }
+}
+
+/* Секция на линии */
+.seg {
+  position: relative;
+}
+
+.seg-grid {
+  --seg-pad: clamp(2.5rem, 1.25rem + 3.5vw, 5.5rem);
+  position: relative;
+  padding-block: var(--seg-pad);
+  padding-left: calc(var(--spine) + var(--spine-gap));
+}
+
+/* Отрезок линии во всю высоту секции */
+.seg-grid::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--spine) - 1.5px);
+  width: 3px;
+  background: var(--line-color);
+}
+
+@media (min-width: 64rem) {
+  .seg-grid {
+    display: grid;
+    grid-template-columns: var(--spine) minmax(0, 1fr);
+    column-gap: 0;
+    padding-left: 0;
+  }
+
+  /* Левая и правая стороны от линии */
+  .seg-left {
+    grid-column: 1;
+    padding-right: var(--spine-gap);
+  }
+
+  .seg-right {
+    grid-column: 2;
+    padding-left: var(--spine-gap);
+  }
+
+  .seg-left,
+  .seg-right {
+    grid-row: 1;
+    min-width: 0;
+  }
+}
+
+/* ── Узел-станция на линии ── */
+/* z-index 3: капсула всегда выше отвода к артефакту (у артефакта 2)
+   и выше точки на линии (1) — подпись станции ничем не перечёркнута */
+.node {
+  position: absolute;
+  z-index: 3;
+  top: var(--seg-pad);
+  left: calc(var(--spine) - 0.75rem);
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-coral);
+  color: var(--color-ink);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition:
+    background-color 0.45s var(--ease-out-soft),
+    color 0.45s var(--ease-out-soft);
+}
+
+@media (min-width: 64rem) {
+  .node {
+    left: var(--spine);
+    translate: -50% 0;
+    min-height: 2.75rem;
+    padding: 0.5rem 1.125rem;
+    font-size: 1rem;
+  }
+}
+
+/* Узел-развязка: точка на линии (продукты, цепочка кейса) */
+.junction {
+  position: absolute;
+  z-index: 2;
+  left: calc(var(--spine) - 0.625rem);
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 3px solid var(--line-color);
+  border-radius: 50%;
+  background: var(--color-coral);
+  transition: background-color 0.45s var(--ease-out-soft);
+}
+
+/* Пока точка не дошла до станции — станция нейтральная.
+   Без JavaScript и при «меньше движения» все станции сразу коралловые */
+.line[data-enhanced] .node:not([data-active]) {
+  background: var(--color-sand);
+}
+
+.line[data-enhanced] .junction:not([data-active]) {
+  background: var(--color-milk);
+}
+
+.line[data-enhanced] .seg-dark .junction:not([data-active]) {
+  background: var(--color-ink);
+}
+
+/* Внутренние страницы: отрезки линии в секциях не рисуются совсем
+   (в том числе на тёмных полосах) — путь показывают только блоки Path */
+.grid-plain .seg-grid::before {
+  display: none;
+}
+
+.grid-plain .lead.line .seg-grid::before {
+  display: none;
+}
+
+/* Тёмная секция (кейс): линия молочная */
+.seg-dark {
+  --line-color: var(--color-milk);
+  --focus-ring: var(--color-milk);
+  background: var(--color-ink);
+  color: var(--color-milk);
+}
+
+/* ── Точка-«пакет данных» ── */
+.line-overlay {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+}
+
+.line-overlay > .container-site {
+  height: 100%;
+}
+
+.line-overlay-grid {
+  position: relative;
+  height: 100%;
+}
+
+.line-run {
+  position: absolute;
+  left: calc(var(--spine) - 1.5px);
+  width: 3px;
+  top: var(--run-top, 0);
+  height: var(--run-h, 0);
+}
+
+.line-head-track {
+  position: absolute;
+  inset: 0;
+  display: none;
+  will-change: transform;
+}
+
+.line-head {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: -0.5625rem 0 0 -0.5625rem;
+  border-radius: 50%;
+  background: var(--color-coral);
+  box-shadow: 0 0 0 3px var(--color-milk);
+}
+
+.line[data-enhanced] .line-head-track {
+  display: block;
+}

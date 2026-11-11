@@ -1,0 +1,70 @@
+---
+/**
+ * Собирает страницу из блоков, описанных в контенте (поле blocks).
+ * Порядок секций меняется в Markdown-файле страницы, без правки кода.
+ * На главной блоки стоят на одной линии — обёртка Line в index.astro;
+ * на внутренних страницах (standalone) линия невидима.
+ */
+import type { MarkdownHeading } from 'astro';
+import type { AstroComponentFactory } from 'astro/runtime/server/index.js';
+import type { PageBlock } from '@/content.config';
+import type { Locale } from '@/i18n/config';
+import CardsBlock from './CardsBlock.astro';
+import CasesBlock from './CasesBlock.astro';
+import ContactsBlock from './ContactsBlock.astro';
+import FaqBlock from './FaqBlock.astro';
+import FeatureBlock from './FeatureBlock.astro';
+import HeroBlock from './HeroBlock.astro';
+import LeadBlock from './LeadBlock.astro';
+import NoteBlock from './NoteBlock.astro';
+import OffersBlock from './OffersBlock.astro';
+import ProseBlock from './ProseBlock.astro';
+import ServicesBlock from './ServicesBlock.astro';
+import StepsBlock from './StepsBlock.astro';
+import TextBlock from './TextBlock.astro';
+
+interface Props {
+  blocks: PageBlock[];
+  locale: Locale;
+  /** Внутренняя страница, а не главная */
+  standalone?: boolean;
+  /** Тело Markdown-файла — для блока prose (компонент из render(entry)) */
+  Content?: AstroComponentFactory;
+  headings?: MarkdownHeading[];
+}
+
+const { blocks, locale, standalone = false, Content, headings } = Astro.props;
+---
+
+{
+  blocks.map((block) => {
+    switch (block.type) {
+      case 'hero':
+        return <HeroBlock block={block} locale={locale} />;
+      case 'services':
+        return <ServicesBlock block={block} locale={locale} />;
+      case 'feature':
+        return <FeatureBlock block={block} locale={locale} />;
+      case 'cards':
+        return <CardsBlock block={block} locale={locale} />;
+      case 'steps':
+        return <StepsBlock block={block} locale={locale} />;
+      case 'cases':
+        return <CasesBlock block={block} locale={locale} />;
+      case 'offers':
+        return <OffersBlock block={block} locale={locale} />;
+      case 'note':
+        return <NoteBlock block={block} locale={locale} />;
+      case 'text':
+        return <TextBlock block={block} locale={locale} />;
+      case 'faq':
+        return <FaqBlock block={block} locale={locale} />;
+      case 'lead':
+        return <LeadBlock block={block} locale={locale} standalone={standalone} />;
+      case 'contacts':
+        return <ContactsBlock block={block} locale={locale} />;
+      case 'prose':
+        return <ProseBlock locale={locale} headings={headings}>{Content && <Content />}</ProseBlock>;
+    }
+  })
+}

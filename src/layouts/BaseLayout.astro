@@ -1,0 +1,187 @@
+---
+/**
+ * Общий каркас страницы: <head> с SEO-тегами, шапка, футер.
+ * title и description у каждой страницы и языка свои (из контента).
+ */
+import '@/styles/global.css';
+import { getCollection } from 'astro:content';
+import Fonts from '@/components/layout/Fonts.astro';
+import Header from '@/components/layout/Header.astro';
+import Footer from '@/components/layout/Footer.astro';
+import MobileDock from '@/components/home/MobileDock.astro';
+import { DEFAULT_LOCALE, LOCALES, LOCALE_META, type Locale } from '@/i18n/config';
+import { useTranslations } from '@/i18n/ui';
+import { buildAlternates, splitEntryId, type Alternates } from '@/i18n/utils';
+import { plainText } from '@/lib/rich';
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  /** Адреса этой страницы на всех языках, где она есть (включая текущий) */
+  alternates: Alternates;
+  noindex?: boolean;
+  ogType?: 'website' | 'article';
+  /** Куда ведёт «Обсудить задачу» в меню */
+  leadHref?: string;
+}
+
+const {
+  locale,
+  title: rawTitle,
+  description: rawDescription,
+  alternates,
+  noindex = false,
+  ogType = 'website',
+  leadHref,
+} = Astro.props;
+
+const t = useTranslations(locale);
+// PUBLIC_PREVIEW=1 в .env — тестовая сборка: все страницы закрыты от поисковиков
+const robotsNoindex = noindex || import.meta.env.PUBLIC_PREVIEW === '1';
+const site = Astro.site ?? new URL('https://smartsol.pro');
+const title = plainText(rawTitle).includes('SmartSol') ? plainText(rawTitle) : `${plainText(rawTitle)} | SmartSol`;
+const description = plainText(rawDescription);
+const canonical = new URL(Astro.url.pathname, site).href;
+// Превью ссылки в соцсетях — своё для каждого языка (npm run assets)
+const ogImage = new URL(locale === DEFAULT_LOCALE ? '/og.png' : `/og-${locale}.png`, site).href;
+
+// Главные страницы, которые уже есть на каждом языке, — для переключателя
+const homeLocales = (await getCollection('pages', ({ id, data }) => !data.draft && id.endsWith('/home'))).map(
+  (entry) => splitEntryId(entry.id).locale,
+);
+const homes = buildAlternates(homeLocales);
+
+const hreflangs = LOCALES.filter((l) => alternates[l]).map((l) => ({
+  lang: LOCALE_META[l].lang,
+  href: new URL(alternates[l]!, site).href,
+}));
+const xDefault = alternates[DEFAULT_LOCALE] ? new URL(alternates[DEFAULT_LOCALE]!, site).href : undefined;
+---
+
+<!doctype html>
+<html lang={LOCALE_META[locale].lang} dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Класс js — только если браузер умеет показывать блоки при прокрутке; без него всё видно сразу -->
+    <script is:inline>
+      if ('IntersectionObserver' in window) document.documentElement.classList.add('js');
+    </script>
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {!robotsNoindex && <link rel="canonical" href={canonical} />}
+    {
+      hreflangs.length > 1 && (
+        <>
+          {hreflangs.map((h) => (
+            <link rel="alternate" hreflang={h.lang} href={h.href} />
+          ))}
+          {xDefault && <link rel="alternate" hreflang="x-default" href={xDefault} />}
+        </>
+      )
+    }
+    {robotsNoindex && <meta name="robots" content={noindex ? 'noindex, follow' : 'noindex, nofollow'} />}
+
+    <Fonts locale={locale} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#F4F1EA" />
+
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content="SmartSol" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={LOCALE_META[locale].ogLocale} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={title} />
+    <meta name="twitter:card" content="summary_large_image" />
+    {
+      LOCALES.filter((l) => l !== locale && alternates[l]).map((l) => (
+        <meta property="og:locale:alternate" content={LOCALE_META[l].ogLocale} />
+      ))
+    }
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{t('skip')}</a>
+    <Header locale={locale} alternates={alternates} homes={homes} leadHref={leadHref} />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <!-- Поле «Обсудить в WhatsApp» внизу экрана — на телефоне и планшете на всех страницах -->
+    <MobileDock locale={locale} />
+    <Footer locale={locale} alternates={alternates} homes={homes} />
+
+    <script>
+      import { initGoalTracking } from '@/scripts/analytics';
+      import { captureAttribution } from '@/scripts/attribution';
+
+      captureAttribution();
+      initGoalTracking();
+
+      // Блоки с data-reveal мягко появляются, когда доходят до экрана
+      const revealObserver = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            entry.target.setAttribute('data-revealed', '');
+            revealObserver.unobserve(entry.target);
+          }
+        },
+        { rootMargin: '0px 0px -8% 0px' },
+      );
+      document.querySelectorAll('[data-reveal]').forEach((el) => revealObserver.observe(el));
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  /* Ссылка «Перейти к содержанию» — видна только при фокусе с клавиатуры */
+  .skip-link {
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 100;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-ink);
+    color: var(--color-milk);
+    font-weight: 600;
+    text-decoration: none;
+    transform: translateY(-200%);
+    transition: transform 0.2s var(--ease-out-soft);
+  }
+
+  .skip-link:focus-visible {
+    transform: none;
+  }
+
+  main:focus {
+    outline: none;
+  }
+
+  /* Появление карточек при прокрутке. Анимация, а не переход: после неё
+     у карточек снова работают свои эффекты наведения */
+  @media (prefers-reduced-motion: no-preference) {
+    html.js [data-reveal]:not(.cal):not([data-revealed]) {
+      opacity: 0;
+    }
+
+    html.js [data-reveal]:not(.cal)[data-revealed] {
+      animation: reveal-up 0.6s var(--ease-out-soft) backwards;
+      animation-delay: calc(var(--i, 0) * 90ms);
+    }
+  }
+
+  @keyframes reveal-up {
+    from {
+      opacity: 0;
+      transform: translateY(0.875rem);
+    }
+  }
+</style>

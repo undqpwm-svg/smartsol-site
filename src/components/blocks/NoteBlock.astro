@@ -1,0 +1,81 @@
+---
+/**
+ * Строка-призыв внизу страницы: «Стоимость — после бесплатного разбора задачи»
+ * и кнопка к форме. Крупный текст, коралловая точка в конце — как в слогане.
+ */
+import '@/styles/line.css';
+import type { PageBlock } from '@/content.config';
+import Rich from '@/components/ui/Rich.astro';
+import type { Locale } from '@/i18n/config';
+import { localizeHref } from '@/i18n/utils';
+
+interface Props {
+  block: Extract<PageBlock, { type: 'note' }>;
+  locale: Locale;
+}
+
+const { block, locale } = Astro.props;
+---
+
+<section class="seg note" id={block.id}>
+  <div class="container-site">
+    <div class="note-box">
+      <p class="note-text">
+        <Rich text={block.text} locale={locale} /><span class="note-dot" aria-hidden="true"></span>
+      </p>
+      {
+        block.cta && (
+          <a class="btn btn-primary" href={localizeHref(block.cta.href, locale)}>
+            {block.cta.label}
+          </a>
+        )
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .note {
+    padding-block: clamp(2.5rem, 1.5rem + 3vw, 4.5rem);
+  }
+
+  .note-box {
+    display: grid;
+    gap: 1.5rem;
+    justify-items: start;
+    padding: clamp(1.5rem, 1rem + 2.5vw, 3rem);
+    border-radius: var(--radius-card);
+    background: var(--color-sand);
+  }
+
+  @media (min-width: 64rem) {
+    .note-box {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+    }
+  }
+
+  .note-text {
+    max-width: 26ch;
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .note-dot {
+    display: inline-block;
+    width: 0.28em;
+    height: 0.28em;
+    margin-left: 0.06em;
+    border-radius: 50%;
+    background: var(--color-coral);
+  }
+
+  @media (max-width: 47.99rem) {
+    .note-box .btn {
+      width: 100%;
+    }
+  }
+</style>

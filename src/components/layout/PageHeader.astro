@@ -1,0 +1,137 @@
+---
+/**
+ * Шапка внутренней страницы: крошки, крупный заголовок, подзаголовок,
+ * кнопка к форме. Справа — слот aside: капсулы систем, цена, мета кейса.
+ * Кнопка помечена data-hero-cta: после неё на телефоне появляется
+ * панель «Обсудить в WhatsApp».
+ */
+import Breadcrumbs from '@/components/layout/Breadcrumbs.astro';
+import Icon from '@/components/ui/Icon.astro';
+import Rich from '@/components/ui/Rich.astro';
+import { whatsappUrl } from '@/data/site';
+import type { Locale } from '@/i18n/config';
+import { useTranslations } from '@/i18n/ui';
+
+interface Props {
+  locale: Locale;
+  crumbs: { label: string; href?: string }[];
+  title: string;
+  lead?: string;
+  /** Подпись кнопки к форме #lead; без неё кнопки нет */
+  cta?: string;
+  /** Вторая кнопка: «Посмотреть демо» (внешний адрес — в новой вкладке) */
+  extra?: { label: string; href: string };
+}
+
+const { locale, crumbs, title, lead, cta, extra } = Astro.props;
+const extraExternal = extra ? /^https?:\/\//.test(extra.href) : false;
+const t = useTranslations(locale);
+// Правая колонка — только если в слот действительно что-то пришло
+const aside = Astro.slots.has('default') ? await Astro.slots.render('default') : '';
+const hasAside = aside.trim().length > 0;
+---
+
+<header class="page-head">
+  <div class="container-site">
+    <Breadcrumbs locale={locale} items={crumbs} />
+    <div class:list={['page-head-grid', hasAside && 'has-aside']}>
+      <div class="page-head-main">
+        <Rich as="h1" class="page-title" text={title} locale={locale} mark />
+        {lead && <Rich as="p" class="page-lead" text={lead} locale={locale} />}
+        {
+          cta && (
+            <div class="page-actions" data-hero-cta>
+              <a class="btn btn-primary" href="#lead">
+                {cta}
+              </a>
+              {extra && (
+                <a
+                  class="btn btn-outline"
+                  href={extra.href}
+                  target={extraExternal ? '_blank' : undefined}
+                  rel={extraExternal ? 'noopener' : undefined}
+                  data-place={extraExternal ? 'demo' : undefined}
+                >
+                  {extra.label}
+                  {extraExternal && <Icon name="arrow-up-right" size={18} />}
+                </a>
+              )}
+              <a class="page-wa u-link" href={whatsappUrl(t('wa.prefill'))} target="_blank" rel="noopener" data-place="page-head">
+                {t('cta.whatsappAria')}
+                <Icon name="arrow-up-right" size={18} />
+              </a>
+            </div>
+          )
+        }
+      </div>
+      {
+        hasAside && (
+          <div class="page-aside">
+            <Fragment set:html={aside} />
+          </div>
+        )
+      }
+    </div>
+  </div>
+</header>
+
+<style>
+  .page-head {
+    padding-block: clamp(1.25rem, 0.75rem + 2vw, 2.5rem) clamp(2.5rem, 1.5rem + 3vw, 4.5rem);
+  }
+
+  .page-head-grid {
+    display: grid;
+    gap: 2rem;
+    margin-top: clamp(1.5rem, 1rem + 2vw, 3rem);
+  }
+
+  @media (min-width: 64rem) {
+    .page-head-grid.has-aside {
+      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+      align-items: end;
+      gap: clamp(2rem, 0rem + 4vw, 5rem);
+    }
+  }
+
+  .page-head-main {
+    display: grid;
+    justify-items: start;
+    gap: 1.25rem;
+  }
+
+  .page-title {
+    max-width: 16ch;
+    font-size: clamp(2.25rem, 1.15rem + 3.6vw, 4.25rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.035em;
+  }
+
+  .page-lead {
+    max-width: 44ch;
+    font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  }
+
+  .page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.5rem;
+    margin-top: 0.25rem;
+  }
+
+  .page-wa {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.75rem;
+    font-weight: 600;
+  }
+
+  @media (max-width: 47.99rem) {
+    .page-actions .btn {
+      flex: 1 1 100%;
+    }
+  }
+</style>

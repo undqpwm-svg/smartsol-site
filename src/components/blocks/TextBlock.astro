@@ -1,0 +1,42 @@
+---
+/** Заголовок слева, текст с абзацами справа */
+import type { PageBlock } from '@/content.config';
+import Rich from '@/components/ui/Rich.astro';
+import type { Locale } from '@/i18n/config';
+
+interface Props {
+  block: Extract<PageBlock, { type: 'text' }>;
+  locale: Locale;
+}
+
+const { block, locale } = Astro.props;
+const titleId = `${block.id ?? 'text'}-title`;
+---
+
+<section class="seg text-block" id={block.id} aria-labelledby={titleId}>
+  <div class="container-site">
+    <div class="seg-grid">
+      <Rich as="h2" id={titleId} class="sec-title seg-left" text={block.title} locale={locale} />
+      <Rich as="div" class="seg-right text-body" text={block.text} locale={locale} block />
+    </div>
+  </div>
+</section>
+
+<style>
+  .text-body {
+    max-width: 60ch;
+    margin-top: 1rem;
+    font-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+  }
+
+  @media (min-width: 64rem) {
+    .text-body {
+      margin-top: 0.25rem;
+    }
+
+    /* Заголовок прижат к оси, как у карточек и разделов услуг */
+    .text-block :global(.sec-title) {
+      text-align: right;
+    }
+  }
+</style>

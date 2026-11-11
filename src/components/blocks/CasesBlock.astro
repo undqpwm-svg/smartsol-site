@@ -1,0 +1,307 @@
+---
+/**
+ * Кейсы из src/content/cases/<язык>/. Названия клиентов не пишем — только отрасль.
+ *  compact — на главной: отрасль, задача и результат, карточка ведёт к кейсу на странице кейсов;
+ *  полный вид — на странице кейсов: задача → что сделали → результат.
+ */
+import '@/styles/line.css';
+import type { PageBlock } from '@/content.config';
+import Icon from '@/components/ui/Icon.astro';
+import Rich from '@/components/ui/Rich.astro';
+import type { Locale } from '@/i18n/config';
+import { useTranslations } from '@/i18n/ui';
+import { localizeHref, localizedPath } from '@/i18n/utils';
+import { getLocalizedCases } from '@/lib/content';
+
+interface Props {
+  block: Extract<PageBlock, { type: 'cases' }>;
+  locale: Locale;
+}
+
+const { block, locale } = Astro.props;
+const t = useTranslations(locale);
+const titleId = `${block.id ?? 'cases'}-title`;
+
+const all = await getLocalizedCases(locale);
+const items = block.items.length
+  ? block.items.map((slug) => {
+      const found = all.find((c) => c.slug === slug);
+      if (!found) throw new Error(`Кейс «${slug}» не найден в src/content/cases/`);
+      return found;
+    })
+  : all;
+const casesPage = localizedPath(locale, 'cases');
+---
+
+<section
+  class:list={['seg cases-block', block.compact ? 'is-compact' : 'is-full']}
+  id={block.id}
+  aria-labelledby={block.title ? titleId : undefined}
+  aria-label={block.title ? undefined : t('nav.cases')}
+>
+  <div class="container-site">
+    <div class="seg-grid">
+      {
+        (block.title || block.all) && (
+          <div class="cases-head seg-left">
+            {block.title && <Rich as="h2" id={titleId} class="cases-title" text={block.title} locale={locale} />}
+            {block.lead && <Rich as="p" class="cases-lead" text={block.lead} locale={locale} />}
+            {block.all && (
+              <a class="cases-all u-link" href={localizeHref(block.all.href, locale)}>
+                {block.all.label}
+                <Icon name="arrow-right" size={18} />
+              </a>
+            )}
+          </div>
+        )
+      }
+
+      <ul class="cases-list seg-right" role="list">
+        {
+          items.map((c) =>
+            block.compact ? (
+              <li class="cs cs-compact" data-reveal>
+                <h3 class="cs-industry">
+                  <a href={`${casesPage}#${c.slug}`}>
+                    <Rich text={c.data.industry} locale={locale} />
+                  </a>
+                </h3>
+                <Rich as="p" class="cs-task" text={c.data.task} locale={locale} />
+                <p class="cs-result">
+                  <span class="cs-label">{t('case.result')}</span>
+                  <Rich text={c.data.result} locale={locale} />
+                </p>
+                <span class="cs-arrow" aria-hidden="true">
+                  <Icon name="arrow-right" size={18} />
+                </span>
+              </li>
+            ) : (
+              <li class="cs cs-full" id={c.slug} data-reveal>
+                <h2 class="cs-industry">
+                  <Rich text={c.data.industry} locale={locale} />
+                </h2>
+                <dl class="cs-rows">
+                  <div>
+                    <dt>{t('case.task')}</dt>
+                    <Rich as="dd" text={c.data.task} locale={locale} />
+                  </div>
+                  <div>
+                    <dt>{t('case.solution')}</dt>
+                    <Rich as="dd" text={c.data.solution} locale={locale} />
+                  </div>
+                  <div class="cs-row-result">
+                    <dt>{t('case.result')}</dt>
+                    <Rich as="dd" text={c.data.result} locale={locale} />
+                  </div>
+                </dl>
+              </li>
+            ),
+          )
+        }
+      </ul>
+
+      {block.note && <Rich as="p" class="cases-note seg-right" text={block.note} locale={locale} />}
+    </div>
+  </div>
+</section>
+
+<style>
+  .cases-head {
+    display: grid;
+    justify-items: start;
+    align-content: start;
+    gap: 0.875rem;
+  }
+
+  .cases-title {
+    font-size: clamp(1.75rem, 1.15rem + 1.9vw, 2.75rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+
+  .cases-lead {
+    max-width: 40ch;
+    color: var(--color-stone);
+  }
+
+  .cases-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.75rem;
+    font-weight: 600;
+  }
+
+  .cases-list {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .is-full .cases-list {
+    margin-top: 0;
+  }
+
+  @media (min-width: 64rem) {
+    .cases-head {
+      justify-items: end;
+      text-align: right;
+      align-self: start;
+    }
+
+    .cases-list {
+      margin-top: 0;
+    }
+
+    /* Страница кейсов: заголовка у блока нет — карточки на всю ширину, по две */
+    .is-full .cases-list {
+      grid-column: 1 / -1;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding-left: 0;
+    }
+
+    .cases-note {
+      grid-row: 2;
+    }
+
+    .is-full .cases-note {
+      grid-column: 1 / -1;
+      padding-left: 0;
+    }
+  }
+
+  .cs {
+    position: relative;
+    border-radius: var(--radius-card);
+    background: var(--color-white);
+  }
+
+  /* ── Главная: короткая карточка-ссылка ── */
+  .cs-compact {
+    display: grid;
+    gap: 0.5rem;
+    padding: 1.375rem 1.375rem 1.5rem;
+    transition:
+      transform 0.25s var(--ease-out-soft),
+      box-shadow 0.25s var(--ease-out-soft);
+  }
+
+  .cs-compact:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px -18px color-mix(in srgb, var(--color-ink) 45%, transparent);
+  }
+
+  .cs-industry {
+    padding-right: 2.75rem;
+    font-size: clamp(1.1875rem, 1.05rem + 0.5vw, 1.4375rem);
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .cs-industry a {
+    text-decoration: none;
+  }
+
+  .cs-industry a::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+
+  .cs-industry a:focus-visible {
+    outline: none;
+  }
+
+  .cs-industry a:focus-visible::after {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  .cs-task {
+    color: var(--color-stone);
+  }
+
+  .cs-result {
+    display: grid;
+    gap: 0.125rem;
+    margin-top: 0.375rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+    font-weight: 500;
+  }
+
+  .cs-label {
+    font-size: var(--text-small);
+    font-weight: 600;
+    color: var(--color-coral-text, var(--color-stone));
+  }
+
+  .cs-arrow {
+    position: absolute;
+    top: 1.125rem;
+    right: 1.125rem;
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    background: var(--color-milk);
+    transition:
+      background-color 0.2s,
+      transform 0.25s var(--ease-out-soft);
+  }
+
+  .cs-compact:hover .cs-arrow {
+    background: var(--color-coral);
+    transform: translateX(2px);
+  }
+
+  /* ── Страница кейсов: задача → что сделали → результат ── */
+  .cs-full {
+    padding: clamp(1.375rem, 1rem + 1.2vw, 2rem);
+    scroll-margin-top: calc(var(--header-h) + 1rem);
+  }
+
+  .cs-full:target {
+    outline: 3px solid var(--color-coral);
+    outline-offset: 3px;
+  }
+
+  .cs-full .cs-industry {
+    padding-right: 0;
+    font-size: clamp(1.375rem, 1.15rem + 0.8vw, 1.75rem);
+  }
+
+  .cs-rows {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.25rem;
+  }
+
+  .cs-rows dt {
+    font-size: var(--text-small);
+    font-weight: 600;
+    color: var(--color-stone);
+  }
+
+  .cs-rows dd {
+    margin-top: 0.125rem;
+  }
+
+  .cs-row-result {
+    padding: 0.875rem 1rem;
+    border-radius: 0.75rem;
+    background: var(--color-milk);
+  }
+
+  .cs-row-result dd {
+    font-weight: 600;
+  }
+
+  .cases-note {
+    margin-top: 1.5rem;
+    color: var(--color-stone);
+  }
+</style>

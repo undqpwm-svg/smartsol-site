@@ -1,0 +1,175 @@
+---
+/**
+ * Услуги и продукты разделами. Название раздела — слева (на широком экране
+ * держится у верха, пока читаете раздел), справа описание, список и итог
+ * «Что получите» на белой плашке с коралловой точкой.
+ * У каждого раздела свой якорь: /services/#integrations — на него ведут карточки главной.
+ */
+import '@/styles/line.css';
+import type { PageBlock } from '@/content.config';
+import Rich from '@/components/ui/Rich.astro';
+import type { Locale } from '@/i18n/config';
+
+interface Props {
+  block: Extract<PageBlock, { type: 'offers' }>;
+  locale: Locale;
+}
+
+const { block, locale } = Astro.props;
+const titleId = `${block.id ?? 'offers'}-title`;
+const Item = block.title ? 'h3' : 'h2';
+---
+
+<section class="seg offers" id={block.id} aria-labelledby={block.title ? titleId : undefined}>
+  <div class="container-site">
+    {
+      block.title && (
+        <div class="seg-grid offers-head">
+          <Rich as="h2" id={titleId} class="sec-title seg-left offers-title" text={block.title} locale={locale} />
+        </div>
+      )
+    }
+    {
+      block.items.map((item) => (
+        <article class="seg-grid offer" id={item.id} aria-labelledby={`${item.id}-title`}>
+          <div class="seg-left offer-side">
+            <Item id={`${item.id}-title`} class="offer-title">
+              <Rich text={item.title} locale={locale} />
+            </Item>
+          </div>
+          <div class="seg-right offer-body">
+            <Rich as="div" class="offer-text" text={item.text} locale={locale} block />
+            {item.list.length > 0 && (
+              <ul class="offer-list" role="list">
+                {item.list.map((li) => (
+                  <li>
+                    {li.title && (
+                      <>
+                        <strong class="offer-li-title">
+                          <Rich text={li.title} locale={locale} />
+                        </strong>{' '}
+                      </>
+                    )}
+                    <Rich text={li.text} locale={locale} />
+                  </li>
+                ))}
+              </ul>
+            )}
+            {item.result && (
+              <p class="offer-result" data-reveal>
+                <span class="offer-result-label">
+                  <Rich text={item.result.label} locale={locale} />
+                </span>{' '}
+                <Rich text={item.result.text} locale={locale} />
+              </p>
+            )}
+          </div>
+        </article>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .offers-head {
+    --seg-pad: 0;
+    padding-top: clamp(1rem, 0.5rem + 2vw, 2.5rem);
+  }
+
+  .offer {
+    --seg-pad: clamp(1.75rem, 1.25rem + 2vw, 3rem);
+    border-top: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
+    scroll-margin-top: var(--header-h);
+  }
+
+  .offer:last-child {
+    border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
+  }
+
+  .offer-title {
+    font-size: clamp(1.5rem, 1.15rem + 1.2vw, 2.125rem);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+  }
+
+  .offer:target .offer-title {
+    text-decoration-line: underline;
+    text-decoration-color: var(--color-coral);
+    text-decoration-thickness: 3px;
+    text-underline-offset: 0.18em;
+  }
+
+  .offer-body {
+    display: grid;
+    gap: 1.25rem;
+    margin-top: 1rem;
+  }
+
+  .offer-text {
+    max-width: 62ch;
+    font-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+  }
+
+  .offer-list {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 62ch;
+  }
+
+  .offer-list li {
+    position: relative;
+    padding-left: 1.25rem;
+  }
+
+  .offer-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.62em;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-ink);
+  }
+
+  .offer-result {
+    position: relative;
+    max-width: 62ch;
+    padding: 1rem 1.25rem 1rem 2.75rem;
+    border-radius: var(--radius-card);
+    background: var(--color-white);
+    font-weight: 500;
+  }
+
+  .offer-result::before {
+    content: '';
+    position: absolute;
+    left: 1.25rem;
+    top: 1.45rem;
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 50%;
+    background: var(--color-coral);
+  }
+
+  .offer-result-label {
+    font-weight: 700;
+  }
+
+  @media (min-width: 64rem) {
+    .offer-side {
+      align-self: start;
+      position: sticky;
+      top: calc(var(--header-h) + 1.5rem);
+    }
+
+    .offer-title {
+      text-align: right;
+    }
+
+    .offer-body {
+      margin-top: 0.25rem;
+    }
+  }
+</style>

@@ -1,0 +1,123 @@
+---
+/**
+ * Страница 404. GitHub Pages отдаёт 404.html на любой
+ * несуществующий адрес с кодом 404. Без этого файла посетитель увидел бы
+ * стандартную страницу ошибки GitHub без шапки и ссылок на сайт.
+ * Мотив — линия главной, которая упирается в тупик: дальше станции нет.
+ * Страница не индексируется.
+ */
+import '@/styles/line.css';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Icon from '@/components/ui/Icon.astro';
+import Rich from '@/components/ui/Rich.astro';
+import { whatsappUrl } from '@/data/site';
+import { DEFAULT_LOCALE } from '@/i18n/config';
+import { useTranslations } from '@/i18n/ui';
+import { localizedPath } from '@/i18n/utils';
+
+const locale = DEFAULT_LOCALE;
+const t = useTranslations(locale);
+---
+
+<BaseLayout
+  locale={locale}
+  title={t('notFound.title')}
+  description={t('notFound.text')}
+  alternates={{}}
+  noindex
+  leadHref={`${localizedPath(locale, 'contacts')}#lead`}
+>
+  <section class="line nf" aria-labelledby="nf-title">
+    <div class="seg">
+      <div class="container-site">
+        <div class="seg-grid nf-grid">
+          <span class="node nf-node">404</span>
+          <span class="nf-stop" aria-hidden="true"></span>
+          <div class="nf-text seg-right">
+            <Rich as="h1" id="nf-title" class="nf-title" text={t('notFound.title')} locale={locale} />
+            <Rich as="p" class="nf-copy" text={t('notFound.text')} locale={locale} />
+            <div class="nf-actions">
+              <a class="btn btn-primary" href={localizedPath(locale)}>{t('notFound.home')}</a>
+              <a class="btn btn-dark" href={whatsappUrl(t('wa.prefill'))} target="_blank" rel="noopener" data-place="404">
+                <Icon name="whatsapp" size={18} />
+                {t('cta.whatsappAria')}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* Здесь линия левее, чем на главной: на странице одна станция */
+  @media (min-width: 64rem) {
+    .nf {
+      --spine: 24%;
+    }
+  }
+
+  .nf-grid {
+    --seg-pad: clamp(2.5rem, 1.5rem + 4vw, 5rem);
+    --stop-gap: clamp(2rem, 1rem + 3vw, 4rem);
+    min-height: clamp(30rem, 68vh, 44rem);
+    padding-bottom: calc(var(--seg-pad) + var(--stop-gap));
+  }
+
+  /* Линия обрывается тупиком: короткая поперечная черта в конце */
+  .nf-grid::before {
+    bottom: var(--stop-gap);
+  }
+
+  .nf-stop {
+    position: absolute;
+    bottom: var(--stop-gap);
+    left: calc(var(--spine) - 0.875rem);
+    width: 1.75rem;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--color-ink);
+  }
+
+  .nf-text {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: 1.25rem;
+    margin-top: 4.25rem;
+  }
+
+  .nf-title {
+    max-width: 14ch;
+    font-size: clamp(2.25rem, 1.2rem + 4vw, 4.5rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .nf-copy {
+    max-width: 42ch;
+    font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+  }
+
+  .nf-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  @media (max-width: 47.99rem) {
+    .nf-actions .btn {
+      flex: 1 1 100%;
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .nf-text {
+      margin-top: 0;
+      padding-top: 0.25rem;
+    }
+  }
+</style>

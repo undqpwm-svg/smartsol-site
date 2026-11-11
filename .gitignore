@@ -1,0 +1,40 @@
+# Зависимости и служебная сборка. Опубликованный сайт лежит в docs/ — его коммитим
+node_modules/
+dist/
+.astro/
+.wrangler/
+test-results/
+playwright-report/
+
+# Секреты и ключи
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Исходники бренда и клиентские материалы — в публичный репозиторий не кладём.
+# На сайте используются только готовые файлы из public/brand
+*.pdf
+*.psd
+*.ai
+*.fig
+*.sketch
+*.xd
+*.indd
+*.eps
+*.zip
+*.rar
+brandbook/
+clients/
+materials/
+
+# Логи и системное
+npm-debug.log*
+*.log
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.claude/

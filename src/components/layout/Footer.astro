@@ -1,0 +1,208 @@
+---
+/**
+ * Подвал на всех страницах: логотип и слоган, разделы, контакты.
+ * Чёрный фон — логотип в инверсии. Реквизиты добавим позже.
+ */
+import Logo from '@/components/brand/Logo.astro';
+import Icon from '@/components/ui/Icon.astro';
+import LangSwitcher from './LangSwitcher.astro';
+import { NAV } from '@/data/nav';
+import { SITE, emailHref, whatsappUrl } from '@/data/site';
+import type { Locale } from '@/i18n/config';
+import { useTranslations } from '@/i18n/ui';
+import { localizedPath, type Alternates } from '@/i18n/utils';
+
+interface Props {
+  locale: Locale;
+  alternates: Alternates;
+  homes: Alternates;
+}
+
+const { locale, alternates, homes } = Astro.props;
+const t = useTranslations(locale);
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer on-dark">
+  <div class="container-site">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <Logo variant="white" width={160} alt="SmartSol" />
+        <p class="footer-slogan">{t('footer.slogan')}<span class="dot" aria-hidden="true"></span></p>
+        <p class="footer-geo">{t('footer.geo')}</p>
+      </div>
+
+      <div class="footer-cols">
+        <nav aria-label={t('footer.sections')}>
+          <h2 class="footer-title">{t('footer.sections')}</h2>
+          <ul role="list">
+            {
+              NAV.map((item) => (
+                <li>
+                  <a href={localizedPath(locale, item.path)}>{t(item.key)}</a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+
+        <div>
+          <h2 class="footer-title">{t('footer.contacts')}</h2>
+          <ul role="list" class="footer-contacts">
+            <li>
+              <a href={emailHref}>
+                <Icon name="mail" size={18} />
+                {SITE.email}
+              </a>
+            </li>
+            <li>
+              <a href={whatsappUrl(t('wa.prefill'))} target="_blank" rel="noopener" data-place="footer">
+                <Icon name="whatsapp" size={18} />
+                {SITE.phone.display}
+              </a>
+            </li>
+            <li>
+              <a href={SITE.instagram.url} target="_blank" rel="noopener">
+                <Icon name="instagram" size={18} />
+                Instagram {SITE.instagram.handle}
+              </a>
+            </li>
+            <li>
+              <a href={SITE.threads.url} target="_blank" rel="noopener">
+                <Icon name="at" size={18} />
+                Threads {SITE.threads.handle}
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© {year} SmartSol</p>
+      <a href={localizedPath(locale, 'privacy')}>{t('footer.privacy')}</a>
+      <LangSwitcher locale={locale} alternates={alternates} homes={homes} variant="footer" class="footer-lang" />
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: auto;
+    padding-block: clamp(2.75rem, 2rem + 4vw, 6rem) 2rem;
+    background-color: var(--color-ink);
+    color: var(--color-milk);
+  }
+
+  .footer-top {
+    display: grid;
+    gap: 2.5rem;
+  }
+
+  @media (min-width: 64rem) {
+    .footer-top {
+      grid-template-columns: minmax(18rem, 1.2fr) 2fr;
+      gap: 4rem;
+    }
+  }
+
+  .footer-brand {
+    display: grid;
+    align-content: start;
+    gap: 0.75rem;
+  }
+
+  .footer-brand :global(.logo) {
+    margin-bottom: clamp(0.75rem, 0.25rem + 2vw, 1.5rem);
+  }
+
+  .footer-slogan {
+    font-family: var(--font-display);
+    font-size: clamp(1.375rem, 1.1rem + 0.9vw, 1.75rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+
+  .footer-geo {
+    color: color-mix(in srgb, var(--color-milk) 72%, transparent);
+  }
+
+  /* Точка в конце слогана — фирменный элемент */
+  .dot {
+    display: inline-block;
+    width: 0.3em;
+    height: 0.3em;
+    margin-left: 0.08em;
+    border-radius: 50%;
+    background: var(--color-coral);
+  }
+
+  .footer-cols {
+    display: grid;
+    gap: 2rem 1.25rem;
+  }
+
+  @media (min-width: 40rem) {
+    .footer-cols {
+      grid-template-columns: 1fr 1.4fr;
+      gap: 2.5rem 2rem;
+    }
+  }
+
+  .footer-title {
+    margin-bottom: clamp(0.5rem, 0.25rem + 1vw, 1rem);
+    font-family: var(--font-sans);
+    font-size: var(--text-small);
+    font-weight: 500;
+    color: color-mix(in srgb, var(--color-milk) 72%, transparent);
+  }
+
+  .footer-cols ul {
+    display: grid;
+    gap: clamp(0.25rem, 0.1rem + 0.6vw, 0.625rem);
+  }
+
+  .footer-cols a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 1.75rem;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+
+  .footer-cols a:hover {
+    text-decoration: underline;
+  }
+
+  .footer-contacts :global(svg) {
+    flex: none;
+    color: color-mix(in srgb, var(--color-milk) 72%, transparent);
+  }
+
+  .footer-bottom {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+    margin-top: clamp(2.5rem, 2rem + 2vw, 3.5rem);
+    padding-top: 1.5rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-milk) 14%, transparent);
+    font-size: var(--text-small);
+    color: color-mix(in srgb, var(--color-milk) 72%, transparent);
+  }
+
+  .footer-bottom a {
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+  }
+
+  .footer-bottom a:hover {
+    color: var(--color-milk);
+  }
+
+  .footer-lang {
+    margin-left: auto;
+  }
+</style>

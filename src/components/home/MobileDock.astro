@@ -1,0 +1,211 @@
+---
+/**
+ * Поле «Обсудить в WhatsApp» внизу экрана на телефоне и планшете.
+ * Появляется, когда кнопка первого экрана ушла вверх, и прячется у формы
+ * заявки: там уже есть форма и ссылка на WhatsApp. Пока панель скрыта,
+ * она недоступна с клавиатуры и для экранных дикторов (inert).
+ * Пустое поле — уходит готовое приветствие (wa.prefill).
+ * На широком экране панели нет: там кнопки видны в шапке и на линии.
+ */
+import Icon from '@/components/ui/Icon.astro';
+import { SITE } from '@/data/site';
+import type { Locale } from '@/i18n/config';
+import { useTranslations } from '@/i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+const [sendFirst, ...sendRest] = t('dock.send').split(' ');
+---
+
+<div class="dock" data-dock hidden>
+  <form
+    class="dock-form"
+    action={`https://wa.me/${SITE.phone.digits}`}
+    method="get"
+    target="_blank"
+    data-dock-form
+    data-wa={SITE.phone.digits}
+    data-prefill={t('wa.prefill')}
+  >
+    <label class="sr-only" for="dock-text">{t('dock.label')}</label>
+    <input
+      class="dock-input"
+      id="dock-text"
+      name="text"
+      type="text"
+      autocomplete="off"
+      enterkeyhint="send"
+      maxlength="500"
+      placeholder={t('dock.placeholder')}
+    />
+    <button class="btn btn-primary dock-send" type="submit">
+      <Icon name="whatsapp" size={18} />
+      <span>{sendFirst}<span class="dock-send-rest"> {sendRest.join(' ')}</span></span>
+    </button>
+  </form>
+</div>
+
+<style>
+  .dock {
+    position: fixed;
+    z-index: 40;
+    inset-inline: 0;
+    bottom: 0;
+    padding: 0 var(--gutter) max(0.75rem, env(safe-area-inset-bottom));
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(calc(100% + 1rem));
+    transition:
+      transform 0.35s var(--ease-out-soft),
+      opacity 0.25s var(--ease-out-soft);
+  }
+
+  .dock[data-visible] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .dock:not([data-visible]) .dock-form {
+    pointer-events: none;
+  }
+
+  /* Без лишнего движения: панель просто проявляется на месте */
+  @media (prefers-reduced-motion: reduce) {
+    .dock {
+      transform: none;
+      transition: opacity 0.2s linear;
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .dock {
+      display: none !important;
+    }
+  }
+
+  .dock-form {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    max-width: 34rem;
+    margin-inline: auto;
+    padding: 0.25rem;
+    border: 2px solid var(--color-ink);
+    border-radius: var(--radius-pill);
+    background: var(--color-white);
+    pointer-events: auto;
+  }
+
+  .dock-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 2.75rem;
+    padding: 0 0.5rem 0 0.875rem;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-ink);
+    /* 16 px и больше: iPhone не увеличивает страницу при фокусе */
+    font: inherit;
+    font-size: 1rem;
+  }
+
+  .dock-input::placeholder {
+    color: var(--color-stone);
+    opacity: 1;
+  }
+
+  /* Кольцо фокуса — вокруг всей панели, а не только поля */
+  @supports selector(:has(*)) {
+    .dock-input:focus-visible {
+      outline: none;
+    }
+
+    .dock-form:has(.dock-input:focus-visible) {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
+  }
+
+  .dock-send {
+    flex: none;
+    min-height: 2.75rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.9375rem;
+  }
+
+  /* Узкий телефон: «Обсудить» и значок WhatsApp, остальное — для дикторов */
+  @media (max-width: 26.49rem) {
+    .dock-send-rest {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+</style>
+
+<script>
+  import { trackGoal } from '@/scripts/analytics';
+
+  const dock = document.querySelector<HTMLElement>('[data-dock]');
+  const form = dock?.querySelector<HTMLFormElement>('[data-dock-form]');
+  const input = form?.querySelector<HTMLInputElement>('input[name="text"]');
+  // Сигнал «первый экран пройден» — кнопка первого экрана или, если её нет, заголовок H1.
+  // Конец — форма заявки; если формы нет, панель прячется у футера
+  const cta = document.querySelector<HTMLElement>('[data-hero-cta]') ?? document.querySelector<HTMLElement>('main h1');
+  const lead =
+    document.querySelector<HTMLElement>('[data-lead-section]') ?? document.querySelector<HTMLElement>('footer');
+
+  if (dock && form && input && cta && lead && 'IntersectionObserver' in window) {
+    let ctaPassed = false;
+    let leadReached = false;
+
+    const update = () => {
+      // Пока человек печатает в панели, не прячем её из-под пальцев
+      const typing = dock.contains(document.activeElement);
+      const show = typing || (ctaPassed && !leadReached);
+      dock.toggleAttribute('data-visible', show);
+      dock.inert = !show;
+      dock.setAttribute('aria-hidden', String(!show));
+    };
+
+    dock.hidden = false;
+    update();
+
+    // В очереди может скопиться несколько записей — верна последняя
+    const latest = (entries: IntersectionObserverEntry[]) => entries[entries.length - 1];
+
+    // Кнопка первого экрана ушла вверх — пора показать панель
+    new IntersectionObserver((entries) => {
+      const entry = latest(entries);
+      ctaPassed = !entry.isIntersecting && entry.boundingClientRect.bottom < 0;
+      update();
+    }).observe(cta);
+
+    // Дошли до формы заявки или прокрутили ниже — панель не нужна
+    new IntersectionObserver((entries) => {
+      const entry = latest(entries);
+      leadReached = entry.isIntersecting || entry.boundingClientRect.top < 0;
+      update();
+    }).observe(lead);
+
+    dock.addEventListener('focusout', () => window.setTimeout(update, 0));
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const text = input.value.trim() || form.dataset.prefill || '';
+      const url = `https://wa.me/${form.dataset.wa ?? ''}?text=${encodeURIComponent(text)}`;
+      trackGoal('whatsapp_click', { place: 'dock' });
+      window.open(url, '_blank', 'noopener');
+      input.value = '';
+      input.blur();
+    });
+  }
+</script>

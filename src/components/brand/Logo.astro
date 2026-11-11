@@ -1,0 +1,61 @@
+---
+/**
+ * Логотип SmartSol — только готовые файлы из брендбука, шрифтом не набираем.
+ *
+ * Охранное поле — 4 диаметра точки. Диаметр точки в файле логотипа —
+ * 21,18 из 612,37 единиц ширины (3,46 %), значит поле = 13,8 % ширины логотипа:
+ * при ширине 132 px — 19 px. Справа поле задаётся отступом самого логотипа,
+ * слева и по вертикали его обеспечивают поля контейнера и высота шапки.
+ * Минимальная ширина на экране — 120 px (брендбук).
+ */
+interface Props {
+  /** default — на молочном и белом, white — на чёрном, on-coral — на коралловом */
+  variant?: 'default' | 'white' | 'on-coral';
+  /** Ширина в px, не меньше 120 */
+  width?: number;
+  class?: string;
+  alt?: string;
+  /** Логотип в шапке — загружаем в первую очередь */
+  priority?: boolean;
+}
+
+const {
+  variant = 'default',
+  width = 132,
+  class: className,
+  alt = 'SmartSol',
+  priority = false,
+  ...rest
+} = Astro.props;
+
+const FILES = {
+  default: '/brand/smartsol-logo.svg',
+  white: '/brand/smartsol-logo-white.svg',
+  'on-coral': '/brand/smartsol-logo-on-coral.svg',
+} as const;
+
+// Пропорции файла: 612,37 × 80,81
+const safeWidth = Math.max(120, width);
+const height = Math.round(((safeWidth * 80.81) / 612.37) * 100) / 100;
+const clear = Math.ceil(safeWidth * 0.1384);
+---
+
+<img
+  src={FILES[variant]}
+  width={safeWidth}
+  height={height}
+  alt={alt}
+  class:list={['logo', className]}
+  style={`--logo-clear:${clear}px`}
+  decoding="async"
+  fetchpriority={priority ? 'high' : undefined}
+  {...rest}
+/>
+
+<style>
+  .logo {
+    display: block;
+    flex: none;
+    margin-inline-end: var(--logo-clear);
+  }
+</style>

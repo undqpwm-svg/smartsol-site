@@ -1,0 +1,38 @@
+---
+/**
+ * Главная страница на всех языках: /, /kz/, /en/.
+ * Страница создаётся для каждого языка, у которого есть файл
+ * src/content/pages/<язык>/home.md — перевод добавляется без правки кода.
+ */
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Blocks from '@/components/blocks/Blocks.astro';
+import Line from '@/components/line/Line.astro';
+import { buildAlternates, localeParam, splitEntryId } from '@/i18n/utils';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('pages', ({ id, data }) => id.endsWith('/home') && !data.draft);
+  const alternates = buildAlternates(entries.map((entry) => splitEntryId(entry.id).locale));
+
+  return entries.map((entry) => {
+    const { locale } = splitEntryId(entry.id);
+    return {
+      params: { locale: localeParam(locale) },
+      props: { entry, locale, alternates },
+    };
+  });
+}
+
+const { entry, locale, alternates } = Astro.props;
+---
+
+<BaseLayout
+  locale={locale}
+  title={entry.data.seo.title}
+  description={entry.data.seo.description}
+  alternates={alternates}
+>
+  <Line>
+    <Blocks blocks={entry.data.blocks} locale={locale} />
+  </Line>
+</BaseLayout>

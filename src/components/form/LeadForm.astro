@@ -1,0 +1,302 @@
+---
+/**
+ * Форма заявки. Сайт статический (GitHub Pages), поэтому заявку принимает
+ * Web3Forms и присылает письмом на help@smartsol.pro. Ключ доступа —
+ * PUBLIC_WEB3FORMS_KEY в .env при сборке. По задумке Web3Forms он публичный:
+ * в кабинете сервиса ключ привязывают к домену smartsol.pro.
+ * Скрипт отправляет заявку сам (JSON); без JavaScript форма уходит
+ * обычным POST в тот же Web3Forms. Защита от спама — скрытое поле-ловушка.
+ * Вместе с заявкой уходят тема, язык, адрес страницы и UTM-метки.
+ */
+import Rich from '@/components/ui/Rich.astro';
+import { SITE, whatsappUrl } from '@/data/site';
+import type { Locale } from '@/i18n/config';
+import { useTranslations } from '@/i18n/ui';
+import { localizedPath } from '@/i18n/utils';
+
+interface Props {
+  locale: Locale;
+  /** Уникальный префикс id, если форм на странице несколько */
+  idPrefix?: string;
+
+  /** Тема заявки: «Продукт: Kaspi Магазин». Приходит в письме и в текст WhatsApp */
+  topic?: string;
+}
+
+const { locale, idPrefix = 'lead', topic } = Astro.props;
+const t = useTranslations(locale);
+const id = (name: string) => `${idPrefix}-${name}`;
+
+const accessKey = import.meta.env.PUBLIC_WEB3FORMS_KEY ?? '';
+
+// Тексты для скрипта формы — на языке страницы
+const messages = {
+  name: t('form.errorName'),
+  phone: t('form.errorPhone'),
+  consent: t('form.errorConsent'),
+  task: t('form.errorTask'),
+  summary: t('form.errorSummary'),
+  network: t('form.errorNetwork'),
+  whatsapp: t('form.errorWhatsapp'),
+  mailSubject: t('form.mailSubject'),
+  server: t('form.errorServer'),
+  sending: t('form.sending'),
+  waTemplate: t('form.waTemplate'),
+  waName: t('form.waName'),
+  waPhone: t('form.waPhone'),
+  waCompany: t('form.company'),
+  waTask: t('form.task'),
+};
+---
+
+<div class="lead-form-wrap" data-lead-root>
+  <form
+    class="lead-form"
+    action="https://api.web3forms.com/submit"
+    method="post"
+    novalidate
+    data-lead-form
+    data-locale={locale}
+    data-key={accessKey}
+    data-wa={SITE.phone.digits}
+    data-topic={topic}
+    data-messages={JSON.stringify(messages)}
+  >
+    <!-- Для отправки без JavaScript: ключ, тема письма и тема заявки -->
+    <input type="hidden" name="access_key" value={accessKey} />
+    <input type="hidden" name="subject" value={topic ? `${t('form.mailSubject')}: ${topic}` : t('form.mailSubject')} />
+    {topic && <input type="hidden" name="topic" value={topic} />}
+
+    <!-- Ловушка для ботов: человек это поле не видит и не заполняет -->
+    <div class="hp" aria-hidden="true">
+      <label for={id('website')}>Website</label>
+      <input id={id('website')} name="website" type="text" tabindex="-1" autocomplete="off" />
+      <input name="botcheck" type="checkbox" tabindex="-1" />
+    </div>
+
+    <div class="lead-row">
+      <div>
+        <label class="field-label" for={id('name')}>{t('form.name')}</label>
+        <input
+          class="input"
+          id={id('name')}
+          name="name"
+          type="text"
+          autocomplete="name"
+          placeholder={t('form.namePlaceholder')}
+          required
+          minlength="2"
+          maxlength="80"
+          aria-describedby={id('name-error')}
+        />
+        <p class="field-error" id={id('name-error')} hidden></p>
+      </div>
+      <div>
+        <label class="field-label" for={id('phone')}>{t('form.phone')}</label>
+        <input
+          class="input"
+          id={id('phone')}
+          name="phone"
+          type="tel"
+          inputmode="tel"
+          autocomplete="tel"
+          placeholder="+7 (___) ___-__-__"
+          required
+          maxlength="18"
+          aria-describedby={id('phone-error')}
+          data-phone
+        />
+        <p class="field-error" id={id('phone-error')} hidden></p>
+      </div>
+    </div>
+
+    <div>
+      <label class="field-label" for={id('org')}>
+        {t('form.company')} <span class="field-hint">({t('form.optional')})</span>
+      </label>
+      <input
+        class="input"
+        id={id('org')}
+        name="org"
+        type="text"
+        autocomplete="organization"
+        maxlength="120"
+      />
+    </div>
+
+    <div>
+      <label class="field-label" for={id('task')}>{t('form.task')}</label>
+      <textarea
+        class="input"
+        id={id('task')}
+        name="task"
+        rows="3"
+        required
+        maxlength="1000"
+        placeholder={t('form.taskPlaceholder')}
+        aria-describedby={id('task-error')}></textarea>
+      <p class="field-error" id={id('task-error')} hidden></p>
+    </div>
+    <div class="lead-consent">
+      <input
+        class="checkbox"
+        id={id('consent')}
+        name="consent"
+        type="checkbox"
+        required
+        aria-describedby={id('consent-error')}
+      />
+      <label for={id('consent')}>
+        {t('form.consent')}
+        <a href={localizedPath(locale, 'privacy')} target="_blank">{t('form.consentLink')}</a>
+      </label>
+      <p class="field-error lead-consent-error" id={id('consent-error')} hidden></p>
+    </div>
+
+    <div class="lead-submit">
+      <button class="btn btn-primary" type="submit" data-submit>{t('form.submit')}</button>
+      <p class="lead-status" role="status" aria-live="polite" data-status></p>
+      <Rich as="p" class="lead-response" text={t('form.response')} locale={locale} />
+    </div>
+
+    <noscript>
+      <p class="lead-noscript">
+        {t('form.noscript')} <a href={whatsappUrl(t('wa.prefill'))}>{SITE.phone.display}</a>
+      </p>
+    </noscript>
+  </form>
+
+  <div class="lead-success" hidden tabindex="-1" data-success>
+    <span class="lead-success-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg>
+    </span>
+    <p class="text-h3">{t('form.successTitle')}</p>
+    <p class="lead-success-text">{t('form.successText')}</p>
+  </div>
+</div>
+
+<style>
+  .lead-form {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .hp {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .lead-row {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 40rem) {
+    .lead-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+
+  .lead-consent {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.25rem 0.75rem;
+    align-items: start;
+    font-size: var(--text-small);
+  }
+
+  .lead-consent label {
+    cursor: pointer;
+  }
+
+  .lead-consent a {
+    text-decoration-line: underline;
+    text-decoration-color: color-mix(in srgb, currentColor 38%, transparent);
+  }
+
+  .lead-consent a:hover {
+    text-decoration-color: currentColor;
+  }
+
+  .lead-consent-error {
+    grid-column: 2;
+    margin-top: 0;
+  }
+
+
+  .lead-submit {
+    display: grid;
+    justify-items: start;
+    gap: 0.75rem;
+  }
+
+  /* Телефон: кнопка отправки на всю ширину */
+  @media (max-width: 39.99rem) {
+    .lead-submit .btn {
+      width: 100%;
+    }
+  }
+
+  .lead-response {
+    font-size: var(--text-small);
+    color: var(--color-stone);
+  }
+
+  .lead-status {
+    font-size: var(--text-small);
+    font-weight: 500;
+  }
+
+  .lead-status :global(a) {
+    display: inline-block;
+    margin-top: 0.25rem;
+    font-weight: 600;
+  }
+
+  .lead-status:empty {
+    display: none;
+  }
+
+  .lead-noscript {
+    font-size: var(--text-small);
+  }
+
+  .lead-success {
+    display: grid;
+    justify-items: start;
+    gap: 1rem;
+    padding-block: 1rem;
+  }
+
+  .lead-success[hidden] {
+    display: none;
+  }
+
+  .lead-success-icon {
+    display: grid;
+    place-items: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    background: var(--color-mint);
+  }
+
+  .lead-success-text {
+    max-width: 44ch;
+    color: var(--color-stone);
+  }
+
+  .lead-success:focus {
+    outline: none;
+  }
+</style>
+
+<script>
+  import { initLeadForms } from '@/scripts/lead-form';
+
+  initLeadForms();
+</script>

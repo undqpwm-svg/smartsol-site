@@ -1,0 +1,30 @@
+---
+/**
+ * Вывод текста из контента с мини-разметкой: [[плашка]], **жирный**,
+ * [ссылка](/путь/), [TODO: …]. HTML в контенте экранируется.
+ */
+import type { HTMLTag } from 'astro/types';
+import type { Locale } from '@/i18n/config';
+import { renderRich, renderRichBlock } from '@/lib/rich';
+
+interface Props {
+  text: string;
+  locale: Locale;
+  as?: HTMLTag;
+  class?: string;
+  id?: string;
+  /** Разрешить коралловую плашку (только для заголовков) */
+  mark?: boolean;
+  /** Текст с абзацами: пустая строка = новый абзац */
+  block?: boolean;
+}
+
+// rest — служебные атрибуты Astro (data-astro-cid-…): без них стили
+// родительского компонента не применяются к этому элементу
+const { text, locale, as: Tag = 'span', class: className, id, mark = false, block = false, ...rest } =
+  Astro.props;
+
+const html = block ? renderRichBlock(text, { locale, mark }) : renderRich(text, { locale, mark });
+---
+
+<Tag class:list={['rich', className]} id={id} set:html={html} {...rest} />

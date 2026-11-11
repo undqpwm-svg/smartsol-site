@@ -1,0 +1,99 @@
+---
+/**
+ * Линия — хребет главной. Секции внутри рисуют свои отрезки линии сами;
+ * эта обёртка добавляет точку-«пакет данных», которая едет по линии вместе
+ * с прокруткой, и зажигает станции, до которых точка дошла.
+ *
+ * Начало пути — элемент [data-line-start] на первом экране,
+ * конец — [data-line-end] у формы заявки.
+ *
+ * Движение (проверка поддержки в скрипте):
+ *  - браузер умеет scroll-timeline (Chrome, Edge, Safari 26+) — Motion
+ *    привязывает анимацию к прокрутке, кадры считает сам браузер;
+ *  - не умеет (Safari 17–18 на iPhone и Mac, Firefox) — Motion двигает точку
+ *    из JavaScript по событию прокрутки, только transform, без перерисовки.
+ *  Для проверки запасного пути: ?motion=js в адресе.
+ * Без JavaScript и при prefers-reduced-motion точки нет, линия статична,
+ * все станции сразу коралловые.
+ */
+import '@/styles/line.css';
+---
+
+<div class="line" data-line>
+  <slot />
+  <div class="line-overlay" aria-hidden="true">
+    <div class="container-site">
+      <div class="line-overlay-grid">
+        <div class="line-run" data-line-run>
+          <div class="line-head-track" data-line-head><span class="line-head"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { scroll } from 'motion';
+  import { animate } from 'motion/mini';
+
+  const line = document.querySelector<HTMLElement>('[data-line]');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const capable = 'IntersectionObserver' in window && 'ResizeObserver' in window;
+
+  if (line && capable && !reduceMotion) {
+    const run = line.querySelector<HTMLElement>('[data-line-run]');
+    const head = line.querySelector<HTMLElement>('[data-line-head]');
+    const start = line.querySelector<HTMLElement>('[data-line-start]');
+    const end = line.querySelector<HTMLElement>('[data-line-end]');
+
+    if (run && head && start && end) {
+      // Путь точки: от центра стартовой точки до верхнего края финальной
+      const grid = run.parentElement as HTMLElement;
+      const measure = () => {
+        const box = grid.getBoundingClientRect();
+        const from = start.getBoundingClientRect();
+        const to = end.getBoundingClientRect();
+        const top = from.top + from.height / 2 - box.top;
+        const bottom = to.top - box.top;
+        run.style.setProperty('--run-top', `${top}px`);
+        run.style.setProperty('--run-h', `${Math.max(0, bottom - top)}px`);
+      };
+      measure();
+      new ResizeObserver(measure).observe(line);
+      line.setAttribute('data-enhanced', '');
+
+      // Голова пути всегда на высоте 60% экрана — там же, где загораются станции
+      const offset = ['start 60%', 'end 60%'] as const;
+      const forceJs = new URLSearchParams(window.location.search).get('motion') === 'js';
+      const timelineSupported =
+        !forceJs && 'ScrollTimeline' in window && CSS.supports('animation-timeline: scroll()');
+
+      if (timelineSupported) {
+        scroll(animate(head, { transform: ['translateY(0%)', 'translateY(100%)'] }, { ease: 'linear' }), {
+          target: run,
+          offset: [...offset],
+        });
+      } else {
+        scroll(
+          (progress: number) => {
+            head.style.transform = `translateY(${progress * 100}%)`;
+          },
+          { target: run, offset: [...offset] },
+        );
+      }
+      line.dataset.motion = timelineSupported ? 'timeline' : 'js';
+
+      // Станция загорается, когда поднимается выше линии 60% экрана.
+      // Зона наблюдения тянется далеко вверх: «выше линии» = пересечение.
+      // Так станции загораются и при прыжке по ссылке-якорю, когда страница
+      // перескакивает через них без промежуточных кадров
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) entry.target.toggleAttribute('data-active', entry.isIntersecting);
+        },
+        { rootMargin: '100000px 0px -40% 0px' },
+      );
+      line.querySelectorAll('.node, .junction, [data-line-end]').forEach((el) => observer.observe(el));
+    }
+  }
+</script>
