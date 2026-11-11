@@ -73,7 +73,10 @@ faces.push(
 );
 
 // Шрифты первого экрана: заголовок H1 (Geologica 800) и основной текст (Onest 400)
-const critical: Subset[] = locale === 'en' ? ['latin'] : ['cyrillic', 'latin'];
+// Казахские буквы (Ә Ғ Қ Ң Ө Ү Һ І) лежат в cyrillic-ext — без предзагрузки заголовок
+// перестраивается, когда файл догружается (сдвиг вёрстки на /kz/)
+const critical: Subset[] =
+  locale === 'en' ? ['latin'] : locale === 'kz' ? ['cyrillic', 'cyrillic-ext', 'latin'] : ['cyrillic', 'latin'];
 const preloads = critical.flatMap((subset) => [
   fileUrl('geologica', subset, 800),
   fileUrl('onest', subset, 400),

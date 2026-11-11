@@ -143,10 +143,22 @@ const href = (h: string) => (isExternal(h) ? h : localizeHref(h, locale));
       box-shadow 0.25s var(--ease-out-soft);
   }
 
+  /* Номер чёрный (коралл на белом — 3:1, мелкому тексту мало), коралловая — только точка */
   .crd-num {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     font-size: var(--text-small);
     font-weight: 600;
-    color: var(--color-coral);
+    color: var(--color-ink);
+  }
+
+  .crd-num::before {
+    content: '';
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-coral);
   }
 
   .crd-title {
