@@ -51,12 +51,18 @@ function fileUrl(pkg: string, subset: Subset, weight: number): string {
   return url;
 }
 
+// Казахский заголовок первого экрана запасным шрифтом переносится иначе (2 строки вместо 3),
+// и после подмены всё ниже съезжает (CLS 0,23). На /kz/ заголовочный Geologica 800 ждёт
+// загрузки (он предзагружен, ожидание короткое), остальные начертания — как обычно, swap
+const display = (family: string, weight: number) =>
+  locale === 'kz' && family === 'Geologica' && weight === 800 ? 'block' : 'swap';
+
 const faces: string[] = [];
 for (const { family, pkg, weights } of FAMILIES) {
   for (const weight of weights) {
     for (const subset of Object.keys(RANGES) as Subset[]) {
       faces.push(
-        `@font-face{font-family:'${family}';font-style:normal;font-display:swap;font-weight:${weight};` +
+        `@font-face{font-family:'${family}';font-style:normal;font-display:${display(family, weight)};font-weight:${weight};` +
           `src:url(${fileUrl(pkg, subset, weight)}) format('woff2');unicode-range:${RANGES[subset]}}`,
       );
     }
